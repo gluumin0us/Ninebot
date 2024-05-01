@@ -23,6 +23,7 @@ names = {
   "DYLAN": "900187776836862003"
 }
 
+"""
 my_char = Character("Simon", 1, 0)
 my_char.legendary[3] += 1
 my_char.legendary[5] += 1
@@ -46,7 +47,7 @@ jack_char.talisman("Wrapped Ribbon", 1, 2)
 jack_char.talisman("Dragon's Bane Armor", 4, 4)
 jack_char.thp = 40
 jack_char.id = names["JACK"]
-
+"""
 
 def char_to_list(char: Character):
   return [char.name, char.level, char.xp, char.hp, char.thp, 
@@ -88,15 +89,14 @@ def printchar(char: Character):
     printable += (f"THP - {char.thp}\n")
   return printable
 
-db["359489732134305793"] = char_to_list(jack_char)
-db["531288319859097601"] = char_to_list(felix_char)
-db["962543637445615656"] = char_to_list(mike_char)
-db["262320046653702145"] = char_to_list(my_char)
+# db["359489732134305793"] = char_to_list(jack_char)
+# db["531288319859097601"] = char_to_list(felix_char)
+# db["962543637445615656"] = char_to_list(mike_char)
+# db["262320046653702145"] = char_to_list(my_char)
 
 char_cache = {}
 
 def find_char(id: str):
-  print(f"Finding character for {id}")
   if id in char_cache:
     return char_cache[id]
   elif id in db:
@@ -106,8 +106,10 @@ def find_char(id: str):
     return False
 
 def save_char(char: Character):
+  print(f"Saving character to {char.id}.")
   char_list = char_to_list(char)
   db[char.id] = char_list
+  print(db[char.id])
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -143,7 +145,6 @@ async def on_message(message):
       print("There is nothing")
     command = command.split()
     
-    print(f"Matching command {command[0]}")
     match command[0]:
       case 'CHAR':
         print("character case entered.")
@@ -169,18 +170,55 @@ async def on_message(message):
         if len(command) == 1:
           char = find_char(id)
           if char:
+            if char.thp > 0:
+              await message.channel.send(f"THP - {char.thp}")
             await message.channel.send(f"HP - {char.hp} / {char.max_hp}")
           else:
             await message.channel.send("Character not found.")
         elif len(command) == 2:
           char = find_char(id)
           if char:
-            old_hp = char.hp
-            char.hp += int(command[1])
+            hp_change = int(command[1])
+            thp_blocked = False
+            if char.thp > 0 and hp_change < 0:
+              old_thp = char.thp
+              if char.thp < -hp_change:
+                hp_change += char.thp
+                char.thp = 0
+                await message.channel.send(f"THP - {old_thp} -> **0**")
+              elif char.thp >= -hp_change:
+                char.thp += hp_change
+                save_char(char)
+                await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
+                thp_blocked = True
+            if not thp_blocked:
+              old_hp = char.hp
+              char.hp += hp_change
+              if char.hp > char.max_hp:
+                char.hp = char.max_hp
+              elif char.hp < 0:
+                char.hp = 0
+              save_char(char)
+              await message.channel.send(f"HP - {old_hp}/{char.max_hp} -> "
+              f"**{char.hp}/{char.max_hp}**")
+          else:
+            await message.channel.send("Character not found.")
+
+      case 'THP':
+        char = find_char(id)
+        if len(command) == 1:
+          if char:
+            await message.channel.send(f"THP - {char.thp}")
+          else:
+            await message.channel.send("Character not found.")
+        elif len(command) == 2:
+          if char:
+            old_thp = char.thp
+            char.thp = int(command[1])
             save_char(char)
-            await message.channel.send(f"HP - {old_hp}/{char.max_hp} -> "
-            f"**{char.hp}/{char.max_hp}**")
+            await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
+          else:
+            await message.channel.send("Character not found.")
 
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
-
