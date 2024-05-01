@@ -12,6 +12,7 @@ str dex cha int att wil luc
 """
 
 names = {
+  # Names and their associated user IDs
   "JACK": "359489732134305793",
   "FELIX": "531288319859097601",
   "SIMON": "262320046653702145",
@@ -50,11 +51,13 @@ jack_char.id = names["JACK"]
 """
 
 def char_to_list(char: Character):
+  # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
           char.tal, char.effect, char.ss, char.pt, char.mod, char.legendary, 
           char.id]
 
 def list_to_char(li_char: list):
+  # Converts a character from a list to a Character object
   char = Character(li_char[0], li_char[1], li_char[2])
   char.hp = li_char[3]
   char.thp = li_char[4]
@@ -69,6 +72,8 @@ def list_to_char(li_char: list):
   return char
 
 def printchar(char: Character):
+  # Takes in a Character object
+  # Returns a string that prints out a character's info
   printable = ""
   printable += (f"__{char.name}: LV{char.level}, {char.xp}/{char.xp_til_next}__\n")
   mark = ["", "", "", "", "", "", ""]
@@ -97,6 +102,10 @@ def printchar(char: Character):
 char_cache = {}
 
 def find_char(id: str):
+  # Finds and returns a character by ID.
+  # First look in cache, then look in database.
+  # If character found in database, store it in cache.
+  # If no character is found, return False.
   if id in char_cache:
     return char_cache[id]
   elif id in db:
@@ -106,6 +115,8 @@ def find_char(id: str):
     return False
 
 def save_char(char: Character):
+  # Saves a character's changes to the database,
+  # Assuming there's already a copy there.
   print(f"Saving character to {char.id}.")
   char_list = char_to_list(char)
   db[char.id] = char_list
@@ -138,6 +149,7 @@ async def on_message(message):
   if "THANKS" in msg or "THANK YOU" in msg and "NINE" in msg:
     await message.channel.send("You're welcome!")
 
+  # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
     print("message detected.")
     command = msg.split('9..', 1)[1]
