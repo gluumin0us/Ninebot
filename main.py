@@ -140,13 +140,13 @@ async def on_message(message):
   id = str(message.author.id)
   msg = message.content.upper()
       
-  if msg.startswith('9..hello'):
+  if msg.startswith('9..HELLO'):
     await message.channel.send(random.choice(greetings_back))
 
-  if "LOVE" in msg or "ILY" in msg and "NINE" in msg and id == names['MIKEY']:
+  if "I LOVE" in msg or "ILY" in msg and "NINE" in msg and id == names['MIKEY']:
     await message.channel.send("I love you too Mikey!")
 
-  if "THANKS" in msg or "THANK YOU" in msg and "NINE" in msg:
+  if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
 
   # Most methods of Ninebot starts with 9..
@@ -231,6 +231,44 @@ async def on_message(message):
             await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
           else:
             await message.channel.send("Character not found.")
+
+      case 'ROLL':
+        char = find_char(id)
+        result = random.randint(1, 20)
+        if len(command) == 1:
+          await message.channel.send (f"Rolling a d20... "
+                                      f"**{result}**")
+          if result == 20:
+            await message.channel.send("**Natural 20!**")
+        elif len(command) == 2:
+          if char:
+            if result == 20:
+              await message.channel.send("Natural 20!")
+            match command[1]:
+              case "STR":
+                await message.channel.send(f"Strength Check: "
+                                           f"**-{result + char.str}+**")
+              case "DEX":
+                await message.channel.send(f"Dexterity Check: "
+                                           f"**-{result + char.dex}+**")
+              case "CHA":
+                await message.channel.send(f"Charisma Check: "
+                                           f"**-{result + char.cha}+**")
+              case "INT":
+                await message.channel.send(f"Intelligence Check: "
+                                           f"**-{result + char.int}+**")
+              case "ATT":
+                await message.channel.send(f"Attack Check: "
+                                           f"**-{result + char.att}+**")
+              case "WILL":
+                await message.channel.send(f"Willpower Check: "
+                                           f"**-{result + char.wil}+**")
+              case "LUCK":
+                await message.channel.send(f"Luck Check: "
+                                           f"**-{result + char.luc}+**")
+          else:
+            await message.channel.send("Character not found.")
+          
 
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
