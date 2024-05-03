@@ -5,6 +5,7 @@ import discord
 from replit import db
 
 from character import Character
+import printer
 
 """
 str dex cha int att wil luc
@@ -71,29 +72,6 @@ def list_to_char(li_char: list):
   char.restat()
   return char
 
-def printchar(char: Character):
-  # Takes in a Character object
-  # Returns a string that prints out a character's info
-  printable = ""
-  printable += (f"__{char.name}: LV{char.level}, {char.xp}/{char.xp_til_next}__\n")
-  mark = ["", "", "", "", "", "", ""]
-  for i in range(len(char.legendary)):
-    for j in range(char.legendary[i]):
-      mark[i] += '+'
-  printable += (f"{mark[0]}Strength - {char.str}\n")
-  printable += (f"{mark[1]}Dexterity - {char.dex}\n")
-  printable += (f"{mark[2]}Charisma - {char.cha}\n")
-  printable += (f"{mark[3]}Intelligence - {char.int}\n")
-  printable += (f"{mark[4]}Attack - {char.att}\n")
-  printable += (f"{mark[5]}Willpower - {char.wil}\n")
-  printable += (f"{mark[6]}Luck - {char.luc}\n")
-  for i in range(len(char.tal)):
-    printable += (f"*TAL{i+1} - {char.tal[i]}*\n")
-  printable += (f"HP - {char.hp}/{char.max_hp}\n")
-  if char.thp > 0:
-    printable += (f"THP - {char.thp}\n")
-  return printable
-
 # db["359489732134305793"] = char_to_list(jack_char)
 # db["531288319859097601"] = char_to_list(felix_char)
 # db["962543637445615656"] = char_to_list(mike_char)
@@ -117,10 +95,8 @@ def find_char(id: str):
 def save_char(char: Character):
   # Saves a character's changes to the database,
   # Assuming there's already a copy there.
-  print(f"Saving character to {char.id}.")
   char_list = char_to_list(char)
   db[char.id] = char_list
-  print(db[char.id])
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -128,6 +104,8 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 
 greetings_back = ["Hello!", "Hi!", "Good to see you!", "Howdy!"]
+affection_back = ["I'm honored?", "Uhm... who are you again?", 
+                  "I'm glad?", "Uh- Thanks!", "Thank you?"]
 
 @client.event
 async def on_ready():
@@ -140,56 +118,47 @@ async def on_message(message):
   id = str(message.author.id)
   msg = message.content.upper()
       
-  if msg.startswith('9..HELLO'):
+  if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
     await message.channel.send(random.choice(greetings_back))
 
-  if "I LOVE" in msg or "ILY" in msg and "NINE" in msg and id == names['MIKEY']:
-    await message.channel.send("I love you too Mikey!")
+  if ("I LOVE" in msg or "ILY" in msg) and "NINE" in msg:
+    if id == names['MIKEY']:
+      await message.channel.send("I love you too Mikey!")
+    else:
+      await message.channel.send(random.choice(affection_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
 
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
-    print("message detected.")
     command = msg.split('9..', 1)[1]
     if command == '':
       print("There is nothing")
     command = command.split()
-    
-    match command[0]:
-      case 'CHAR':
-        print("character case entered.")
-        if len(command) == 1:
-          char = find_char(id)
-          if char:
-            printable = printchar(char)
-            await message.channel.send(printable)
-          else:
-            await message.channel.send("Character not found.")
-        elif len(command) == 2:
-          char = find_char(names[command[1].upper()])
-          if char:
-            printable = printchar(char)
-            await message.channel.send(printable)
-          else:
-            await message.channel.send("Character not found.")
-        else:
-          await message.channel.send("Error - cannot parse command")
+    if command[-2] == '-T':
+      id = names[command[-1]]
+      command.pop()
+      command.pop()
+    char = find_char(id)
+    if char:
+      match command[0]:
 
-      case 'HP':
-        print("HP case entered.")
-        if len(command) == 1:
-          char = find_char(id)
-          if char:
+        # Prints out character information
+        case 'CHAR':
+          print("character case entered.")
+          if len(command) == 1:
+            printable = printer.printchar(char)
+            await message.channel.send(printable)
+
+        # Prints out, or modifies HP
+        case 'HP':
+          print("HP case entered.")
+          if len(command) == 1:
             if char.thp > 0:
               await message.channel.send(f"THP - {char.thp}")
             await message.channel.send(f"HP - {char.hp} / {char.max_hp}")
-          else:
-            await message.channel.send("Character not found.")
-        elif len(command) == 2:
-          char = find_char(id)
-          if char:
+          elif len(command) == 2:
             hp_change = int(command[1])
             thp_blocked = False
             if char.thp > 0 and hp_change < 0:
@@ -213,62 +182,38 @@ async def on_message(message):
               save_char(char)
               await message.channel.send(f"HP - {old_hp}/{char.max_hp} -> "
               f"**{char.hp}/{char.max_hp}**")
-          else:
-            await message.channel.send("Character not found.")
 
-      case 'THP':
-        char = find_char(id)
-        if len(command) == 1:
-          if char:
+        # Prints out, or modifies THP
+        case 'THP':
+          if len(command) == 1:
             await message.channel.send(f"THP - {char.thp}")
-          else:
-            await message.channel.send("Character not found.")
-        elif len(command) == 2:
-          if char:
+          elif len(command) == 2:
             old_thp = char.thp
             char.thp = int(command[1])
             save_char(char)
             await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
-          else:
-            await message.channel.send("Character not found.")
 
-      case 'ROLL':
-        char = find_char(id)
-        result = random.randint(1, 20)
-        if len(command) == 1:
-          await message.channel.send (f"Rolling a d20... "
-                                      f"**{result}**")
-          if result == 20:
-            await message.channel.send("**Natural 20!**")
-        elif len(command) == 2:
-          if char:
+        # Rolls a d20, and optionally adds stats
+        case 'ROLL':
+          result = random.randint(1, 20)
+          if len(command) == 1:
+            await message.channel.send (f"Rolling a d20... **-{result}-**")
             if result == 20:
-              await message.channel.send("Natural 20!")
-            match command[1]:
-              case "STR":
-                await message.channel.send(f"Strength Check: "
-                                           f"**-{result + char.str}+**")
-              case "DEX":
-                await message.channel.send(f"Dexterity Check: "
-                                           f"**-{result + char.dex}+**")
-              case "CHA":
-                await message.channel.send(f"Charisma Check: "
-                                           f"**-{result + char.cha}+**")
-              case "INT":
-                await message.channel.send(f"Intelligence Check: "
-                                           f"**-{result + char.int}+**")
-              case "ATT":
-                await message.channel.send(f"Attack Check: "
-                                           f"**-{result + char.att}+**")
-              case "WILL":
-                await message.channel.send(f"Willpower Check: "
-                                           f"**-{result + char.wil}+**")
-              case "LUCK":
-                await message.channel.send(f"Luck Check: "
-                                           f"**-{result + char.luc}+**")
-          else:
-            await message.channel.send("Character not found.")
-          
+              await message.channel.send("**Natural 20!**")
+          elif len(command) == 2:
+            printable = printer.printroll(char, result, command[1])
+            await message.channel.send(printable)
+        
+        case 'XP':
+          if len(command) == 1:
+            await message.channel.send(f"XP - {char.xp}/{char.xp_til_next}")
+          elif len(command) == 2:
+            gained_xp = int(command[1])
+            old_xp = char.xp
+            char.xp += gained_xp
+            await message.channel.send(f"XP - {old_xp}/{char.xp_til_next}"
+                                       f" -> {char.xp}/{char.xp_til_next}")
+        
 
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
