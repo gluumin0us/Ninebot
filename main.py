@@ -6,6 +6,7 @@ from replit import db
 
 from character import Character
 import printer
+import modify
 
 """
 str dex cha int att wil luc
@@ -159,30 +160,9 @@ async def on_message(message):
               await message.channel.send(f"THP - {char.thp}")
             await message.channel.send(f"HP - {char.hp} / {char.max_hp}")
           elif len(command) == 2:
-            hp_change = int(command[1])
-            thp_blocked = False
-            if char.thp > 0 and hp_change < 0:
-              old_thp = char.thp
-              if char.thp < -hp_change:
-                hp_change += char.thp
-                char.thp = 0
-                await message.channel.send(f"THP - {old_thp} -> **0**")
-              elif char.thp >= -hp_change:
-                char.thp += hp_change
-                save_char(char)
-                await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
-                thp_blocked = True
-            if not thp_blocked:
-              old_hp = char.hp
-              char.hp += hp_change
-              if char.hp > char.max_hp:
-                char.hp = char.max_hp
-              elif char.hp < 0:
-                char.hp = 0
-              save_char(char)
-              await message.channel.send(f"HP - {old_hp}/{char.max_hp} -> "
-              f"**{char.hp}/{char.max_hp}**")
-
+            printable = modify.modhp(char, int(command[1]))
+            await message.channel.send(printable)
+            
         # Prints out, or modifies THP
         case 'THP':
           if len(command) == 1:
