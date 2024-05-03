@@ -137,7 +137,7 @@ async def on_message(message):
     if command == '':
       print("There is nothing")
     command = command.split()
-    if command[-2] == '-T':
+    if len(command) > 1 and command[-2] == '-T':
       id = names[command[-1]]
       command.pop()
       command.pop()
@@ -160,7 +160,9 @@ async def on_message(message):
               await message.channel.send(f"THP - {char.thp}")
             await message.channel.send(f"HP - {char.hp} / {char.max_hp}")
           elif len(command) == 2:
-            printable = modify.modhp(char, int(command[1]))
+            hp_change = 500 if command[1] == "FULL" else int(command[1])
+            printable = modify.modhp(char, hp_change)
+            save_char(char)
             await message.channel.send(printable)
             
         # Prints out, or modifies THP
