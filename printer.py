@@ -52,8 +52,12 @@ def printroll(char: Character, base: int, stat: str):
       result += char.luc
       printable = "Luck "
   printable += f"Check: **-{result}+**\n"
+
+  if base == 1:
+    printable += "Nat 1 :(\n"
   
   if base == 20:
     printable += "**NATURAL 20!**"
     
+  
   return printable

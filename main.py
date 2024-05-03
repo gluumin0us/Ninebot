@@ -1,5 +1,7 @@
 import os
 import random
+import requests
+from time import sleep
 
 import discord
 from replit import db
@@ -131,6 +133,16 @@ async def on_message(message):
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
 
+  if "TELL" in msg and "JOKE" in msg and "NINE" in msg:
+    response = requests.get('https://v2.jokeapi.dev/joke/Pun')
+    json_data = response.json()
+    if json_data["type"] == "single":
+      await message.channel.send(json_data["joke"])
+    elif json_data['type'] == 'twopart':
+      await message.channel.send(json_data['setup'])
+      sleep(2)
+      await message.channel.send(json_data['delivery'])
+
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
     command = msg.split('9..', 1)[1]
@@ -144,6 +156,16 @@ async def on_message(message):
     char = find_char(id)
     if char:
       match command[0]:
+
+        case 'JOKE':
+          response = requests.get('https://v2.jokeapi.dev/joke/Miscellaneous,Pun?blacklistFlags=racist')
+          json_data = response.json()
+          if json_data["type"] == "single":
+            await message.channel.send(json_data["joke"])
+          elif json_data['type'] == 'twopart':
+            await message.channel.send(json_data['setup'])
+            sleep(2)
+            await message.channel.send(json_data['delivery'])
 
         # Prints out character information
         case 'CHAR':
@@ -185,6 +207,16 @@ async def on_message(message):
           elif len(command) == 2:
             printable = printer.printroll(char, result, command[1])
             await message.channel.send(printable)
+            if result == 20:
+              legendary = random.randint(1, 10)
+              await message.channel.send("Rolling for legendaries...")
+              sleep(0.5)
+              await message.channel.send(":drum: :drum: :drum: ")
+              sleep(2)
+              if legendary == 10:
+                await message.channel.send("**10!**\n **LEGENDARY!!!**")
+              else:
+                await message.channel.send(f"{legendary}\nBetter luck next time!")
         
         case 'XP':
           if len(command) == 1:
