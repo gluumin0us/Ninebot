@@ -31,28 +31,32 @@ def printroll(char: Character, base: int, stat: str):
   # Returns a string that prints out the results of a stat roll
   printable = ""
   result = base
-  match stat:
-    case "STR":
-      result += char.str
-      printable = "Strength "
-    case "DEX":
-      result += char.dex
-      printable = "Dexterity "
-    case "CHA":
-      result += char.cha
-      printable = "Charisma "
-    case "INT":
-      result += char.int
-      printable = "Intelligence "
-    case "ATT":
-      result += char.att
-      printable = "Attack "
-    case "WILL":
-      result += char.wil
-      printable = "Willpower "
-    case "LUCK":
-      result += char.luc
-      printable = "Luck "
+  if stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
+    result += int(stat)
+    printable = f"{stat} Custom "
+  else:
+    match stat:
+      case "STR":
+        result += char.str
+        printable = "Strength "
+      case "DEX":
+        result += char.dex
+        printable = "Dexterity "
+      case "CHA":
+        result += char.cha
+        printable = "Charisma "
+      case "INT":
+        result += char.int
+        printable = "Intelligence "
+      case "ATT":
+        result += char.att
+        printable = "Attack "
+      case "WILL":
+        result += char.wil
+        printable = "Willpower "
+      case "LUCK":
+        result += char.luc
+        printable = "Luck "
   printable += f"Check: **-{result}+**\n"
 
   if base == 1:

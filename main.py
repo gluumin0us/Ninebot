@@ -113,6 +113,7 @@ affection_back = ["I'm honored?", "Uhm... who are you again?",
 @client.event
 async def on_ready():
   print(f'We have logged in as {client.user}')
+  await client.change_presence(activity=discord.Game('9..help'))
 
 @client.event
 async def on_message(message):
