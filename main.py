@@ -157,10 +157,26 @@ async def on_message(message):
     if char:
       match command[0]:
 
+        case 'TEST':
+          embedVar = printer.test_embed((message.author.display_name, 
+                                         message.author.display_avatar))
+          await message.channel.send(embed=embedVar)
+      
+        # Prints out helpful information
+        case 'HELP':
+          printable = ""
+          if len(command) == 1:
+            printable = printer.printhelp("MAIN")
+            await message.channel.send(printable)
+          elif len(command) == 2:
+            printable = printer.printhelp(command[1])
+            await message.channel.send(printable)
+        
+        # Tells a joke
         case 'JOKE':
           response = requests.get('https://v2.jokeapi.dev/joke/Miscellaneous,Pun?blacklistFlags=racist')
           json_data = response.json()
-          if json_data["type"] == "single":
+          if json_data['type'] == "single":
             await message.channel.send(json_data["joke"])
           elif json_data['type'] == 'twopart':
             await message.channel.send(json_data['setup'])
@@ -193,7 +209,9 @@ async def on_message(message):
             await message.channel.send(f"THP - {char.thp}")
           elif len(command) == 2:
             old_thp = char.thp
-            char.thp = int(command[1])
+            char.thp += int(command[1])
+            if char.thp < 0:
+              char.thp = 0
             save_char(char)
             await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
 
@@ -217,16 +235,22 @@ async def on_message(message):
                 await message.channel.send("**10!**\n **LEGENDARY!!!**")
               else:
                 await message.channel.send(f"{legendary}\nBetter luck next time!")
-        
+
+        # Prints out, or modifies XP
         case 'XP':
           if len(command) == 1:
-            await message.channel.send(f"XP - {char.xp}/{char.xp_til_next}")
+            await message.channel.send(f"XP - {char.xp}/{240 * char.level - 100}")
           elif len(command) == 2:
-            gained_xp = int(command[1])
-            old_xp = char.xp
-            char.xp += gained_xp
-            await message.channel.send(f"XP - {old_xp}/{char.xp_til_next}"
-                                       f" -> {char.xp}/{char.xp_til_next}")
+            xp_change = int(command[1])
+            printable = modify.modxp(char, xp_change)
+            save_char(char)
+            await message.channel.send(printable)
+
+      # Prints out current level and XP
+        case 'LEVEL':
+          if len(command) == 1:
+            await message.channel.send(f"Level - LV{char.level}, "
+                                       f"{char.xp}/{240 * char.level - 100}")
         
 
 my_secret = os.environ['TOKEN']

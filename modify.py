@@ -32,7 +32,31 @@ def modhp(char: Character, hp_change: int):
       printable += f"\n{char.name} is no longer in critical hp."
   return printable
 
+xp_total = [0, 140, 520, 1140, 2000, 3100, 4440, 6020, 7840, 9900]
+
 def modxp(char: Character, xp_change: int):
   printable = ""
-  #TODO
+  old_level = char.level
+  old_xp = char.xp
+  old_total_xp = xp_total[old_level - 1] + char.xp
+  new_total_xp = old_total_xp + xp_change
+  for i in range(1, 10):
+    if new_total_xp >= 9900:
+      char.level = 10
+      char.xp = new_total_xp - 9900
+    if new_total_xp < xp_total[i]:
+      char.level = i
+      char.xp = new_total_xp - xp_total[i-1]
+      break
+  char.restat()
+  if old_level < char.level:
+    printable += "**Level Up!**\n"
+    char.max_hp = 40 + char.level * 5
+    char.hp = char.max_hp
+  elif old_level > char.level:
+    printable += "Level Down!\n"
+    char.max_hp = 40 + char.level * 5
+    char.hp = char.max_hp
+  printable += f"Level - LV{old_level}, {old_xp}/{240 * old_level - 100} -> "
+  printable += f"**LV{char.level}, {char.xp}/{240 * char.level - 100}**\n"
   return printable

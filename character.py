@@ -3,7 +3,6 @@ class Character:
     self.name = name
     self.level = level
     self.xp = xp
-    self.xp_til_next = 240 * self.level - 100
     self.max_hp = 40 + self.level * 5
     self.hp = self.max_hp
     self.thp = 0
@@ -27,10 +26,10 @@ class Character:
     self.mod[stat] += stat_amount
 
   def restat(self):
-    self.str += self.legendary[0] + self.mod[0]
-    self.dex += self.legendary[1] + self.mod[1]
-    self.cha += self.legendary[2] + self.mod[2]
-    self.int += self.legendary[3] + self.mod[3]
-    self.att += self.legendary[4] + self.mod[4]
-    self.wil += self.legendary[5] + self.mod[5]
-    self.luc += self.legendary[6] + self.mod[6]
+    self.str = 2 + self.level + self.legendary[0] + self.mod[0]
+    self.dex = 2 + self.level + self.legendary[1] + self.mod[1]
+    self.cha = 2 + self.level + self.legendary[2] + self.mod[2]
+    self.int = 2 + self.level + self.legendary[3] + self.mod[3]
+    self.att = 2 + self.level + self.legendary[4] + self.mod[4]
+    self.wil = 2 + self.level + self.legendary[5] + self.mod[5]
+    self.luc = 2 + self.level + self.legendary[6] + self.mod[6]
