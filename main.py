@@ -119,6 +119,7 @@ async def on_message(message):
   if message.author == client.user:
     return
   id = str(message.author.id)
+  requester = (message.author.display_name, str(message.author.display_avatar))
   msg = message.content.upper()
       
   if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
@@ -158,18 +159,17 @@ async def on_message(message):
       match command[0]:
 
         case 'TEST':
-          embedVar = printer.test_embed((message.author.display_name, 
-                                         message.author.display_avatar))
+          embedVar = printer.test_embed(requester)
           await message.channel.send(embed=embedVar)
       
         # Prints out helpful information
         case 'HELP':
           printable = ""
           if len(command) == 1:
-            printable = printer.printhelp("MAIN")
-            await message.channel.send(printable)
+            printable = printer.printhelp("MAIN", requester)
+            await message.channel.send(embed=printable)
           elif len(command) == 2:
-            printable = printer.printhelp(command[1])
+            printable = printer.printhelp(command[1], requester)
             await message.channel.send(printable)
         
         # Tells a joke

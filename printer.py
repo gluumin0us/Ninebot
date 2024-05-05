@@ -63,25 +63,41 @@ def printroll(char: Character, base: int, stat: str):
     
   return printable
 
-def printhelp(cmd: str):
+def printhelp(cmd: str, requester):
   printable = ""
   if cmd == "MAIN":
-    printable += "Hello! I'm Nine, you Magic Casino character manager!\n"
-    printable += "To call on me, start your message with `9..`.\n"
-    printable += "If you want specific details on a command, please do "
-    printable += "`9..help <command>` e.g. `9..help hp`\n"
-    printable += "Here's a list of my commands and their general functions!\n\n"
-    printable += "`<9..help>` - gives you information on me, or a specic command.\n"
-    printable += "`<9..char>` - prints out your character stats.\n"
-    printable += "`<9..hp>` - prints out, or modifies, your HP.\n"
-    printable += "`<9..thp>` - prints out, or modifies, your temp HP specifically.\n"
-    printable += "`<9..roll>` - rolls a d20, and can optionally add your stats.\n"
-    printable += "`<9..xp>` - prints out, or modifies, your XP.\n"
-    printable += "`<9..level>` - prints out your current level and XP.\n"
-    printable += "Adding `-t <name>` at the end of any command will make the "
-    printable += "command target another player.\n"
-    printable += "e.g. `9..char -t jack` will show Jack's character instead "
-    printable += "of your own.\n"
+    req_name, req_avatar = requester
+    embed = discord.Embed(title="-Help-",
+      description="Hello! I'm Nine, your Magic Casino character manager!\n"\
+                "To call on me, start your message with `9..`\n\n"\
+                "If you want specific details on a command, \n"\
+                "please do `9..help <command>`\n"\
+                "e.g. `9..help hp` will give you information on the hp command.\n\n"\
+                "Adding `-t <name>` at the end of any command will make the "\
+                "command target another player.\n"\
+                "e.g. `9..char -t jack` will show Jack's character instead "\
+                "of your own.",
+      colour=0xff6600)
+
+    embed.set_author(name=req_name, icon_url=req_avatar)
+
+    embed.add_field(name="\n", value="\n", inline=False)
+
+    embed.add_field(name="Command",
+      value="**9..help**\n\n**9..char**\n\n**9..hp**\n\n"\
+          "**9..thp**\n\n**9..roll**\n\n**9..xp**\n\n**9..level**",
+      inline=True)
+
+    embed.add_field(name="Description",
+      value="Gives you information on me, or a specific command.\n\n"\
+            "Prints out your character stats.\n\n"\
+            "Prints out, or modifies, your HP.\n\n"\
+            "Prints out, or modifies, your temp HP specifically.\n\n"\
+            "Rolls a d20, and can optionally add your stats.\n\n"\
+            "Prints out, or modifies, your XP.\n\n"\
+            "Prints out your current level and XP.",
+      inline=True)
+    return embed
 
   if cmd == "HELP":
     printable += "**<9..help>**\n"
@@ -140,7 +156,12 @@ def test_embed(requester):
                 "To call on me, start your message with `9..`\n\n"\
                 "If you want specific details on a command, \n"\
                 "please do `9..help <command>`\n"\
-                "e.g. `9..help hp` will give you information on the hp command.",
+                "e.g. `9..help hp` will give you information on the hp command.\n\n"\
+                "Adding `-t <name>` at the end of any command will make the "\
+                "command target another player.\n"\
+                "e.g. `9..char -t jack` will show Jack's character instead "\
+                "of your own."
+                ,
     colour=0xff6600)
 
   embed.set_author(name=req_name, icon_url=str(req_avatar))
