@@ -171,7 +171,7 @@ async def on_message(message):
             await message.channel.send(embed=printable)
           elif len(command) == 2:
             printable = printer.printhelp(command[1], requester)
-            await message.channel.send(printable)
+            await message.channel.send(embed=printable)
         
         # Tells a joke
         case 'JOKE':
