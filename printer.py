@@ -29,7 +29,7 @@ def printchar(char: Character):
 
 def printroll(char: Character, base: int, stat: str):
   # Returns a string that prints out the results of a stat roll
-  printable = ""
+  printable = ":game_die:  "
   result = base
   if stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
     result += int(stat)
@@ -38,26 +38,26 @@ def printroll(char: Character, base: int, stat: str):
     match stat:
       case "STR":
         result += char.str
-        printable = "Strength "
+        printable += "Strength "
       case "DEX":
         result += char.dex
-        printable = "Dexterity "
+        printable += "Dexterity "
       case "CHA":
         result += char.cha
-        printable = "Charisma "
+        printable += "Charisma "
       case "INT":
         result += char.int
-        printable = "Intelligence "
+        printable += "Intelligence "
       case "ATT":
         result += char.att
-        printable = "Attack "
+        printable += "Attack "
       case "WILL":
         result += char.wil
-        printable = "Willpower "
+        printable += "Willpower "
       case "LUCK":
         result += char.luc
-        printable = "Luck "
-  printable += f"Check: **-{result}+**\n"
+        printable += "Luck "
+  printable += f"Check: **-{result}+** :game_die:\n"
 
   if base == 1:
     printable += "Nat 1 :(\n"
