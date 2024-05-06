@@ -109,6 +109,7 @@ client = discord.Client(intents=intents)
 greetings_back = ["Hello!", "Hi!", "Good to see you!", "Howdy!"]
 affection_back = ["I'm honored?", "Uhm... who are you again?", 
                   "I'm glad?", "Uh- Thanks!", "Thank you?"]
+hatred_back = ["Aw, what? Why?", ":(", "Well I uh, I hate you too!"]
 
 @client.event
 async def on_ready():
@@ -131,6 +132,9 @@ async def on_message(message):
       await message.channel.send("I love you too Mikey!")
     else:
       await message.channel.send(random.choice(affection_back))
+
+  if"I HATE" in msg and "NINE" in msg:
+    await message.channel.send(random.choice(hatred_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
@@ -252,6 +256,15 @@ async def on_message(message):
           if len(command) == 1:
             await message.channel.send(f"Level - LV{char.level}, "
                                        f"{char.xp}/{240 * char.level - 100}")
+
+        case 'LEGEND':
+          if len(command) == 1:
+            printable = printer.printleg(char)
+            await message.channel.send(printable)
+          elif len(command) == 3:
+            printable = modify.modleg(char, command[1], int(command[2]))
+            save_char(char)
+            await message.channel.send(printable)
         
 
 my_secret = os.environ['TOKEN']

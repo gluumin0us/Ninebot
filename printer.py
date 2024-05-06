@@ -68,7 +68,6 @@ def printroll(char: Character, base: int, stat: str):
   return printable
 
 def printhelp(cmd: str, requester):
-  printable = ""
   req_name, req_avatar = requester
   match cmd: 
     case "MAIN":
@@ -203,3 +202,15 @@ def printhelp(cmd: str, requester):
     
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
+
+
+def printleg(char: Character):
+  printable = f"{char.name}'s Legendary bonuses: \n"
+  printable += f"Strength: +{char.legendary[0]}\n"
+  printable += f"Dexterity: +{char.legendary[1]}\n"
+  printable += f"Charisma: +{char.legendary[2]}\n"
+  printable += f"Intelligence: +{char.legendary[3]}\n"
+  printable += f"Attack: +{char.legendary[4]}\n"
+  printable += f"Willpower: +{char.legendary[5]}\n"
+  printable += f"Luck: +{char.legendary[6]}\n"
+  return printable

@@ -60,3 +60,45 @@ def modxp(char: Character, xp_change: int):
   printable += f"Level - LV{old_level}, {old_xp}/{240 * old_level - 100} -> "
   printable += f"**LV{char.level}, {char.xp}/{240 * char.level - 100}**\n"
   return printable
+
+def modleg(char: Character, stat: str, leg_change: int):
+  printable = ""
+  match stat:
+    case 'STR':
+      old_str = char.legendary[0]
+      char.legendary[0] += leg_change
+      printable += f"Strength: +{old_str} -> **+{char.legendary[0]}**"
+
+    case 'DEX':
+      old_dex = char.legendary[1]
+      char.legendary[1] += leg_change
+      printable += f"Dexterity: +{old_dex} -> **+{char.legendary[1]}**"
+
+    case 'CHA':
+      old_cha = char.legendary[2]
+      char.legendary[2] += leg_change
+      printable += f"Charisma: +{old_cha} -> **+{char.legendary[2]}**"
+
+    case 'INT':
+      old_int = char.legendary[3]
+      char.legendary[3] += leg_change
+      printable += f"Intelligence: +{old_int} -> **+{char.legendary[3]}**"
+
+    case 'ATT':
+      old_att = char.legendary[4]
+      char.legendary[4] += leg_change
+      printable += f"Attack: +{old_att} -> **+{char.legendary[4]}**"
+
+    case 'WILL':
+      old_wil = char.legendary[5]
+      char.legendary[5] += leg_change
+      printable += f"Willpower: +{old_wil} -> **+{char.legendary[5]}**"
+
+    case 'LUCK':
+      old_luc = char.legendary[6]
+      char.legendary[6] += leg_change
+      printable += f"Luck: +{old_luc} -> **+{char.legendary[6]}**"
+
+  char.restat()
+
+  return printable
