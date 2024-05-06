@@ -89,7 +89,8 @@ def printhelp(cmd: str, requester):
 
       embed.add_field(name="Command",
       value="**9..help**\n\n**9..char**\n\n**9..hp**\n\n"\
-          "**9..thp**\n\n**9..roll**\n\n**9..xp**\n\n**9..level**",
+          "**9..thp**\n\n**9..roll**\n\n**9..xp**\n\n"\
+          "**9..level**\n\n**9..legend**\n\n",
       inline=True)
 
       embed.add_field(name="Description",
@@ -99,7 +100,8 @@ def printhelp(cmd: str, requester):
             "Prints out, or modifies, your temp HP specifically.\n\n"\
             "Rolls a d20, and can optionally add your stats.\n\n"\
             "Prints out, or modifies, your XP.\n\n"\
-            "Prints out your current level and XP.",
+            "Prints out your current level and XP.\n\n"\
+            "Prints out, or modifies, your legendary bonuses.\n\n",
       inline=True)
       return embed
 
@@ -200,6 +202,20 @@ def printhelp(cmd: str, requester):
                   "as well as your xp. It's a pretty simple command.",
       colour=0xff6600)
     
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "LEGEND":
+      embed = discord.Embed(title="9..legend",
+      description="This command will show you your legendary "\
+                "bonuses for each of your stats "\
+                "if you run it without arguments.\n\n"\
+                "If you run the command with a stat and a number, "\
+                "it will add the number to the stat's legendary bonus.\n\n "\
+                "e.g. `9..legend dex +1` would give you one legendary bonus "\
+                "for your dexterity stat.",
+      colour=0xff6600)
+
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
 
