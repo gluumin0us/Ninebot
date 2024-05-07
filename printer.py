@@ -8,10 +8,17 @@ def printchar(char: Character):
   # Takes in a Character object
   # Returns a string that prints out a character's info
   printable = ""
-  printable += (f"__{char.name}: LV{char.level}, "
-                f"{char.xp}/{240 * char.level - 100}__\n")
+  printable += f"__{char.name}: LV{char.level}, "
+  if char.level != 10:
+    printable += f"{char.xp}/{240 * char.level - 100}__\n"
+  else:
+    printable += "**MAX LEVEL**\n"
   leg_mark = ["", "", "", "", "", "", ""]
   tal_mark = ["", "", "", "", "", "", ""]
+  bold_mark = ["", "", "", "", "", "", ""]
+  for i in range(7):
+    if char.stat[i] - char.legendary[i] >= 12:
+      bold_mark[i] += "**"
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
     tal_mark[cur_tal[1]] += f"(TAL{i+1} "
@@ -22,7 +29,8 @@ def printchar(char: Character):
     for j in range(char.legendary[i]):
       leg_mark[i] += '+'
   for i in range(7):
-    printable += (f"{leg_mark[i]}{num_to_stat[i]} - {char.stat[i]} {tal_mark[i]}\n")
+    printable += f"{leg_mark[i]}{num_to_stat[i]} - "\
+                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} {tal_mark[i]}\n"
     
   for i in range(len(char.tal)):
     printable += (f"*TAL{i+1} - {char.tal[i][0]}*\n")

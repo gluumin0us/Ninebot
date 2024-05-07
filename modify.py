@@ -69,7 +69,10 @@ def modxp(char: Character, xp_change: int):
     char.max_hp = 40 + char.level * 5
     char.hp = char.max_hp
   printable += f"Level - LV{old_level}, {old_xp}/{240 * old_level - 100} -> "
-  printable += f"**LV{char.level}, {char.xp}/{240 * char.level - 100}**\n"
+  if char.level != 10:
+    printable += f"**LV{char.level}, {char.xp}/{240 * char.level - 100}**\n"
+  elif char.level == 10:
+    printable += f"**LV{char.level}, MAX LEVEL**\n"
   return printable
 
 def modleg(char: Character, stat: str, leg_change: int):
