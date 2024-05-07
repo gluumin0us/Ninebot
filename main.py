@@ -124,6 +124,7 @@ async def on_message(message):
     return
   id = str(message.author.id)
   requester = (message.author.display_name, str(message.author.display_avatar))
+  original_msg = message.content
   msg = message.content.upper()
       
   if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
@@ -153,6 +154,8 @@ async def on_message(message):
 
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
+    original_command = original_msg.split('9..', 1)[1]
+    original_command = original_command.split()
     command = msg.split('9..', 1)[1]
     if command == '':
       print("What's your command?")
@@ -276,31 +279,26 @@ async def on_message(message):
             if action == 'ADD':
               action = command[1]
               # handing multi-word names
-              tal_name = command.pop(2).lower().capitalize()
-              if tal_name.startswith("\""):
-                tal_name = tal_name.lstrip("\"").capitalize()
-                not_over = True
-                while not_over:
-                  tal_name += " "
-                  tal_name += command.pop(2).lower().capitalize()
-                  if tal_name.endswith("\""):
-                    not_over = False
-                    tal_name = tal_name.rstrip("\"")
+              tal_name = original_command.pop(2)
+              while original_command[2].upper() not in modify.stat_to_int:
+                tal_name += f" {original_command.pop(2)}"
 
               # handing description
               tal_desc = ""
-              while len(command) >= 5:
-                tal_desc += command.pop(4).lower()
-                tal_desc += " "
-              tal_desc = tal_desc.strip("  \"").capitalize()
-              punc = ['.', '?', '!']
-              desc_list = list(tal_desc)
-              for i in range(len(desc_list)):
-                if desc_list[i] in punc and i < (len(desc_list) - 2):
-                  desc_list[i+2] = desc_list[i+2].upper()
-              tal_desc = ''.join(desc_list)
+              for i in range(4, len(original_command)):
+                if original_command[i].upper() not in modify.stat_to_int and \
+                not original_command[i].startswith('+') and \
+                not original_command[i].startswith('-'):
+                  tal_desc += f"{original_command[i]} "
+
+              tal_stat = []
+              tal_mod = []
+              for i in range(len(command)):
+                if command[i] in modify.stat_to_int:
+                  tal_stat.append(command[i])
+                  tal_mod.append(int(command[i+1]))
               
-              tal = [tal_name, command[2], int(command[3]), tal_desc]
+              tal = [tal_name, tal_stat, tal_mod, tal_desc]
 
               printable = modify.modtal(char, action, tal)
             elif action == 'RM':

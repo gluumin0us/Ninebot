@@ -10,7 +10,8 @@ def restat(char: Character):
   for i in range(7):
     char.stat[i] = 2 + char.level + char.legendary[i] + char.mod[i]
   for i in char.tal:
-    char.stat[i[1]] += i[2]
+    for j in range(len(i[1])):
+      char.stat[i[1][j]] += i[2][j]
 
 def modhp(char: Character, hp_change: int):
   printable = ""
@@ -121,7 +122,8 @@ def modtal(char: Character, action: str, tal):
   printable = ""
   match action:
     case 'ADD':
-      tal[1] = stat_to_int[tal[1]]
+      for i in range(len(tal[1])):
+        tal[1][i] = stat_to_int[tal[1][i]]
       char.tal.append(tal)
       printable += "Talisman added!\n"\
       f"*TAL{len(char.tal)} - {tal[0]}*\n"
