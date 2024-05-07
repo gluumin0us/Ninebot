@@ -1,5 +1,16 @@
 from character import Character
 
+int_to_stat = ["Strength", "Dexterity", "Charisma", 
+               "Intelligence", "Attack", "Willpower", "Luck"]
+stat_to_int = {"STR": 0, "DEX": 1, "CHA": 2, "INT": 3, 
+               "ATT": 4, "WILL": 5, "LUCK": 6}
+
+
+def restat(char: Character):
+  for i in range(7):
+    char.stat[i] = 2 + char.level + char.legendary[i] + char.mod[i]
+  for i in char.tal:
+    char.stat[i[1]] += i[2]
 
 def modhp(char: Character, hp_change: int):
   printable = ""
@@ -48,7 +59,7 @@ def modxp(char: Character, xp_change: int):
       char.level = i
       char.xp = new_total_xp - xp_total[i-1]
       break
-  char.restat()
+  restat(char)
   if old_level < char.level:
     printable += "**Level Up!**\n"
     char.max_hp = 40 + char.level * 5
@@ -99,6 +110,21 @@ def modleg(char: Character, stat: str, leg_change: int):
       char.legendary[6] += leg_change
       printable += f"Luck: +{old_luc} -> **+{char.legendary[6]}**"
 
-  char.restat()
+  restat(char)
 
+  return printable
+
+def modtal(char: Character, action: str, tal):
+  printable = ""
+  match action:
+    case 'ADD':
+      tal[1] = stat_to_int[tal[1]]
+      char.tal.append(tal)
+      printable += "Talisman added!\n"\
+      f"*TAL{len(char.tal)} - {tal[0]}*\n"
+    case 'RM':
+      removed_tal = char.tal.pop(tal - 1)
+      printable += "Talisman removed!\n"\
+      f"*TAL{tal} - {removed_tal[0]}*\n"
+  restat(char)
   return printable

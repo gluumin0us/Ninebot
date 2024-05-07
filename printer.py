@@ -1,6 +1,8 @@
 from character import Character
 import discord
 
+num_to_stat = ["Strength", "Dexterity", "Charisma", 
+   "Intelligence", "Attack", "Willpower", "Luck"]
 
 def printchar(char: Character):
   # Takes in a Character object
@@ -8,19 +10,19 @@ def printchar(char: Character):
   printable = ""
   printable += (f"__{char.name}: LV{char.level}, "
                 f"{char.xp}/{240 * char.level - 100}__\n")
-  mark = ["", "", "", "", "", "", ""]
+  leg_mark = ["", "", "", "", "", "", ""]
+  tal_mark = ["", "", "", "", "", "", ""]
+  for i in range(len(char.tal)):
+    cur_tal = char.tal[i]
+    tal_mark[cur_tal[1]] += f"(TAL{i+1} +{cur_tal[2]})"
   for i in range(len(char.legendary)):
     for j in range(char.legendary[i]):
-      mark[i] += '+'
-  printable += (f"{mark[0]}Strength - {char.str}\n")
-  printable += (f"{mark[1]}Dexterity - {char.dex}\n")
-  printable += (f"{mark[2]}Charisma - {char.cha}\n")
-  printable += (f"{mark[3]}Intelligence - {char.int}\n")
-  printable += (f"{mark[4]}Attack - {char.att}\n")
-  printable += (f"{mark[5]}Willpower - {char.wil}\n")
-  printable += (f"{mark[6]}Luck - {char.luc}\n")
+      leg_mark[i] += '+'
+  for i in range(7):
+    printable += (f"{leg_mark[i]}{num_to_stat[i]} - {char.stat[i]} {tal_mark[i]}\n")
+    
   for i in range(len(char.tal)):
-    printable += (f"*TAL{i+1} - {char.tal[i]}*\n")
+    printable += (f"*TAL{i+1} - {char.tal[i][0]}*\n")
   printable += (f"HP - {char.hp}/{char.max_hp}\n")
   if char.thp > 0:
     printable += (f"THP - {char.thp}\n")
@@ -37,25 +39,25 @@ def printroll(char: Character, base: int, stat: str):
   else:
     match stat:
       case "STR":
-        result += char.str
+        result += char.stat[0]
         printable += "Strength "
       case "DEX":
-        result += char.dex
+        result += char.stat[1]
         printable += "Dexterity "
       case "CHA":
-        result += char.cha
+        result += char.stat[2]
         printable += "Charisma "
       case "INT":
-        result += char.int
+        result += char.stat[3]
         printable += "Intelligence "
       case "ATT":
-        result += char.att
+        result += char.stat[4]
         printable += "Attack "
       case "WILL":
-        result += char.wil
+        result += char.stat[5]
         printable += "Willpower "
       case "LUCK":
-        result += char.luc
+        result += char.stat[6]
         printable += "Luck "
   printable += f"Check: **-{result}+** :game_die:\n"
 
@@ -229,4 +231,18 @@ def printleg(char: Character):
   printable += f"Attack: +{char.legendary[4]}\n"
   printable += f"Willpower: +{char.legendary[5]}\n"
   printable += f"Luck: +{char.legendary[6]}\n"
+  return printable
+
+def printtal(char: Character):
+  printable = ""
+  if len(char.tal) == 0:
+    return "You don't have any talismans!\n"
+  for i in range(len(char.tal)):
+    cur_tal = char.tal[i]
+    printable += f"**TAL{i+1} - {cur_tal[0]}**\n"\
+    f"+{cur_tal[2]} {num_to_stat[cur_tal[1]]}\n"
+    if cur_tal[3] != "":
+      printable += f"*{cur_tal[3]}*\n"
+    printable += "\n"
+
   return printable

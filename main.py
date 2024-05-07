@@ -42,17 +42,19 @@ mike_char = Character("Michael", 3, 164)
 mike_char.legendary = [1, 0, 1, 0, 1, 2, 0]
 mike_char.talisman("Pearl Necklace", 0, 0)
 mike_char.id = names["MIKEY"]
-
+"""
+"""
 jack_char = Character("Jack", 9, 1495)
 jack_char.legendary[4] += 2
 jack_char.legendary[5] += 1
 jack_char.legendary[6] += 1
-jack_char.talisman("Vision's Necklace", 5, 1)
-jack_char.talisman("Wrapped Ribbon", 1, 2)
-jack_char.talisman("Dragon's Bane Armor", 4, 4)
+#jack_char.tal.append["Vision's Necklace", 5, 1, ""]
+#jack_char.talisman("Wrapped Ribbon", 1, 2)
+#jack_char.talisman("Dragon's Bane Armor", 4, 4)
 jack_char.thp = 40
 jack_char.id = names["JACK"]
 """
+
 
 def char_to_list(char: Character):
   # Converts a Character object to a list for storage
@@ -72,7 +74,7 @@ def list_to_char(li_char: list):
   char.mod = li_char[9]
   char.legendary = li_char[10]
   char.id = li_char[11]
-  char.restat()
+  modify.restat(char)
   return char
 
 # db["359489732134305793"] = char_to_list(jack_char)
@@ -153,7 +155,7 @@ async def on_message(message):
   if msg.startswith('9..'):
     command = msg.split('9..', 1)[1]
     if command == '':
-      print("There is nothing")
+      print("What's your command?")
     command = command.split()
     if len(command) > 1 and command[-2] == '-T':
       id = names[command[-1]]
@@ -190,7 +192,6 @@ async def on_message(message):
 
         # Prints out character information
         case 'CHAR':
-          print("character case entered.")
           if len(command) == 1:
             printable = printer.printchar(char)
             await message.channel.send(printable)
@@ -265,7 +266,48 @@ async def on_message(message):
             printable = modify.modleg(char, command[1], int(command[2]))
             save_char(char)
             await message.channel.send(printable)
-        
+
+        case 'TAL':
+          if len(command) == 1:
+            printable = printer.printtal(char)
+            await message.channel.send(printable)
+          else:
+            action = command[1]
+            if action == 'ADD':
+              action = command[1]
+              # handing multi-word names
+              tal_name = command.pop(2).lower().capitalize()
+              if tal_name.startswith("\""):
+                tal_name = tal_name.lstrip("\"").capitalize()
+                not_over = True
+                while not_over:
+                  tal_name += " "
+                  tal_name += command.pop(2).lower().capitalize()
+                  if tal_name.endswith("\""):
+                    not_over = False
+                    tal_name = tal_name.rstrip("\"")
+
+              # handing description
+              tal_desc = ""
+              while len(command) >= 5:
+                tal_desc += command.pop(4).lower()
+                tal_desc += " "
+              tal_desc = tal_desc.strip("  \"").capitalize()
+              punc = ['.', '?', '!']
+              desc_list = list(tal_desc)
+              for i in range(len(desc_list)):
+                if desc_list[i] in punc and i < (len(desc_list) - 2):
+                  desc_list[i+2] = desc_list[i+2].upper()
+              tal_desc = ''.join(desc_list)
+              
+              tal = [tal_name, command[2], int(command[3]), tal_desc]
+
+              printable = modify.modtal(char, action, tal)
+            elif action == 'RM':
+              printable = modify.modtal(char, action, int(command[2]))
+            save_char(char)
+            await message.channel.send(printable)
+          
 
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
