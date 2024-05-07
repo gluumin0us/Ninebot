@@ -104,7 +104,7 @@ def printhelp(cmd: str, requester):
       embed.add_field(name="Command",
       value="**9..help**\n\n**9..char**\n\n**9..hp**\n\n"\
           "**9..thp**\n\n**9..roll**\n\n**9..xp**\n\n"\
-          "**9..level**\n\n**9..legend**\n\n",
+          "**9..level**\n\n**9..legend**\n\n**9..tal**\n\n",
       inline=True)
 
       embed.add_field(name="Description",
@@ -115,7 +115,8 @@ def printhelp(cmd: str, requester):
             "Rolls a d20, and can optionally add your stats.\n\n"\
             "Prints out, or modifies, your XP.\n\n"\
             "Prints out your current level and XP.\n\n"\
-            "Prints out, or modifies, your legendary bonuses.\n\n",
+            "Prints out, or modifies, your legendary bonuses.\n\n"\
+            "Prints out, adds, or removes talismans.\n\n",
       inline=True)
       return embed
 
@@ -233,6 +234,36 @@ def printhelp(cmd: str, requester):
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
 
+    case "TAL":
+      embed = discord.Embed(title="9..tal",
+      description="This command will show you your talismans, their "\
+                  "stat modifications, and their descriptions if you "\
+                  "run it without arguments.\n\n"\
+                  "To add a talisman to your character, do the following:\n"\
+                  "`9..tal add <name> <the stat it modifies> "\
+                  "<how much it modifies the stat> <optional description>`\n"\
+                  "e.g. `9..tal add Cloak of Shadows dex +1` "\
+                  "will give you a talisman called Clock of Shadows that increases "\
+                  "your dexterity by 1.\n\n"\
+                  "Your talisman can also have multiple stat modifications.\n"\
+                  "e.g. `9..tal add Jeweled Necklace cha +1 luck +2 An enchanted "\
+                  "necklace made of gems and gold.` will give you a talisman that "\
+                  "enhances your charisma by 1 and your luck by 2, with a short "\
+                  "description to boot.\n\n"
+                  "To remove a talisman, do `9..tal rm <talisman number>`.\n"\
+                  "e.g. `9..tal rm 1` will remove your TAL1.\n\n"\
+                  "tip: f you have a longer description, it's ok to put it "\
+                  "on a separate line, like this: \n"\
+                  "```\n9..tal add Solstice Heart str +2 will +4\n"\
+                  "The parts of this artificial heart are forged out of pure "\
+                  "solstice steel, and carefully constructed by "\
+                  "a clan of master craftsman over the span of 2 weeks. "\
+                  "Some say that this heart can pump pure traxon through "\
+                  "a person's veins.\n```",
+      colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
 
 def printleg(char: Character):
   printable = f"{char.name}'s Legendary bonuses: \n"
