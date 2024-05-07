@@ -14,7 +14,10 @@ def printchar(char: Character):
   tal_mark = ["", "", "", "", "", "", ""]
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
-    tal_mark[cur_tal[1]] += f"(TAL{i+1} +{cur_tal[2]})"
+    tal_mark[cur_tal[1]] += f"(TAL{i+1} "
+    if cur_tal[2] > 0:
+      tal_mark[cur_tal[1]] += '+'
+    tal_mark[cur_tal[1]] += f"{cur_tal[2]})"
   for i in range(len(char.legendary)):
     for j in range(char.legendary[i]):
       leg_mark[i] += '+'
@@ -239,8 +242,10 @@ def printtal(char: Character):
     return "You don't have any talismans!\n"
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
-    printable += f"**TAL{i+1} - {cur_tal[0]}**\n"\
-    f"+{cur_tal[2]} {num_to_stat[cur_tal[1]]}\n"
+    printable += f"**TAL{i+1} - {cur_tal[0]}**\n"
+    if cur_tal[2] > 0:
+      printable += '+'
+    printable += f"{cur_tal[2]} {num_to_stat[cur_tal[1]]}\n"
     if cur_tal[3] != "":
       printable += f"*{cur_tal[3]}*\n"
     printable += "\n"
