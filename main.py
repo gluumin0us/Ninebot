@@ -201,7 +201,6 @@ async def on_message(message):
 
         # Prints out, or modifies HP
         case 'HP':
-          print("HP case entered.")
           if len(command) == 1:
             if char.thp > 0:
               await message.channel.send(f"THP - {char.thp}")

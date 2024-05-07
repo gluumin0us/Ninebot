@@ -9,6 +9,8 @@ stat_to_int = {"STR": 0, "DEX": 1, "CHA": 2, "INT": 3,
 def restat(char: Character):
   for i in range(7):
     char.stat[i] = 2 + char.level + char.legendary[i] + char.mod[i]
+    if char.hp <= 15:
+      char.stat[i] -= 2
   for i in char.tal:
     for j in range(len(i[1])):
       char.stat[i[1][j]] += i[2][j]
@@ -42,6 +44,7 @@ def modhp(char: Character, hp_change: int):
       printable += f"\n**{char.name.upper()} IS IN CRITICAL HP.**"
     elif old_hp <= 15:
       printable += f"\n{char.name} is no longer in critical hp."
+    restat(char)
   return printable
 
 xp_total = [0, 140, 520, 1140, 2000, 3100, 4440, 6020, 7840, 9900]

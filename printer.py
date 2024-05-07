@@ -13,9 +13,14 @@ def printchar(char: Character):
     printable += f"{char.xp}/{240 * char.level - 100}__\n"
   else:
     printable += "**MAX LEVEL**\n"
+
+  if char.hp <= 15:
+    printable += "**CRITICAL (-2 ALL)**\n"
+  
   leg_mark = ["", "", "", "", "", "", ""]
   tal_mark = ["", "", "", "", "", "", ""]
   bold_mark = ["", "", "", "", "", "", ""]
+  
   for i in range(7):
     if char.stat[i] - char.legendary[i] >= 12:
       bold_mark[i] += "**"
@@ -31,7 +36,10 @@ def printchar(char: Character):
       leg_mark[i] += '+'
   for i in range(7):
     printable += f"{leg_mark[i]}{num_to_stat[i]} - "\
-                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} {tal_mark[i]}\n"
+                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} {tal_mark[i]} "
+    if char.hp <= 15:
+      printable += "(**-2**)"
+    printable += "\n"
     
   for i in range(len(char.tal)):
     printable += (f"*TAL{i+1} - {char.tal[i][0]}*\n")
@@ -94,7 +102,9 @@ def printhelp(cmd: str, requester):
                 "Adding `-t <name>` at the end of any command will make the "\
                 "command target another player.\n"\
                 "e.g. `9..char -t jack` will show Jack's character instead "\
-                "of your own.",
+                "of your own.\n\n"\
+                "Some commands might have you input a stat. The respectives stats "\
+                "are `str`, `dex`, `cha`, `int`, `att`, `will`, and `luck`.",
       colour=0xff6600)
 
       embed.set_author(name=req_name, icon_url=req_avatar)
