@@ -55,7 +55,6 @@ jack_char.thp = 40
 jack_char.id = names["JACK"]
 """
 
-
 def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
@@ -156,6 +155,9 @@ async def on_message(message):
   if msg.startswith('9..'):
     original_command = original_msg.split('9..', 1)[1]
     original_command = original_command.split()
+    if len(original_command) > 1 and original_command[-2].upper() == '-T':
+      original_command.pop()
+      original_command.pop()
     command = msg.split('9..', 1)[1]
     if command == '':
       print("What's your command?")
@@ -313,16 +315,34 @@ async def on_message(message):
             action = command[1]
             if action == 'ADD':
               aff_name = command[2]
-              aff_tier = command[3]
+              aff_tier = 0
+              if command[3].isdigit():
+                aff_tier = int(command.pop(3))
+                original_command.pop(3)
               
               i = 0;
               aff_stat = []
               aff_mod = []
-              for i in range(4, len(command))
-                if command[i] in modify.stat_to_int:
-                  aff_stat.append(command.pop(i))
-                  aff_stat.append(int(command.pop(i)))
-                  # TODO
+              if len(command) > 3:
+                while command[3] in modify.stat_to_int:
+                  aff_stat.append(command.pop(3))
+                  aff_mod.append(int(command.pop(3)))
+                  original_command.pop(i)
+                  original_command.pop(i)
+                  if len(command) < 4:
+                    break
+                  
+              aff_desc = ""
+              for i in range(3, len(original_command)):
+                aff_desc += f"{original_command[i]} "
+
+              aff = [aff_name, aff_tier, aff_stat, aff_mod, aff_desc]
+              printable = modify.modaff(char, action, aff)
+              
+            elif action == 'RM':
+              printable = modify.modaff(char, action, command[2])
+            save_char(char)
+            await message.channel.send(printable)
                 
                 
           

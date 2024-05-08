@@ -1,4 +1,5 @@
 from character import Character
+from printer import printRoman
 
 int_to_stat = ["Strength", "Dexterity", "Charisma", 
                "Intelligence", "Attack", "Willpower", "Luck"]
@@ -14,6 +15,9 @@ def restat(char: Character):
   for i in char.tal:
     for j in range(len(i[1])):
       char.stat[i[1][j]] += i[2][j]
+  for i in char.aff:
+    for j in range(len(i[2])):
+      char.stat[i[2][j]] += i[3][j]
 
 def modhp(char: Character, hp_change: int):
   printable = ""
@@ -139,3 +143,19 @@ def modtal(char: Character, action: str, tal):
 
 def modaff(char: Character, action: str, aff):
   #TODO
+  printable = ""
+  match action:
+    case 'ADD':
+      aff[1] = printRoman(aff[1])
+      for i in range(len(aff[2])):
+        aff[2][i] = stat_to_int[aff[2][i]]
+      char.aff.append(aff)
+      printable += f"Affliction added!\n**{aff[0]} {aff[1]}**"
+    case 'RM':
+      for i in range(len(char.aff)):
+        if char.aff[i][0] == aff:
+          removed_aff = char.aff.pop(i)
+          printable += f"Affliction removed!\n**{removed_aff[0]} {removed_aff[1]}**"
+          break
+  restat(char)
+  return printable

@@ -4,6 +4,24 @@ import discord
 num_to_stat = ["Strength", "Dexterity", "Charisma", 
    "Intelligence", "Attack", "Willpower", "Luck"]
 
+def printRoman(number):
+  num = [1, 4, 5, 9, 10, 40, 50, 90,
+      100, 400, 500, 900, 1000]
+  sym = ["I", "IV", "V", "IX", "X", "XL",
+      "L", "XC", "C", "CD", "D", "CM", "M"]
+  i = 12
+  printable = ""
+
+  while number:
+      div = number // num[i]
+      number %= num[i]
+
+      while div:
+          printable += sym[i]
+          div -= 1
+      i -= 1
+  return printable
+
 def printchar(char: Character):
   # Takes in a Character object
   # Returns a string that prints out a character's info
@@ -16,10 +34,13 @@ def printchar(char: Character):
 
   if char.hp <= 15:
     printable += "**CRITICAL (-2 ALL)**\n"
+  for i in char.aff:
+    printable += f"**{i[0]} {i[1]}**\n"
   
   leg_mark = ["", "", "", "", "", "", ""]
   tal_mark = ["", "", "", "", "", "", ""]
   bold_mark = ["", "", "", "", "", "", ""]
+  debuff_mark = [0, 0, 0, 0, 0, 0, 0]
   
   for i in range(7):
     if char.stat[i] - char.legendary[i] >= 12:
@@ -34,13 +55,19 @@ def printchar(char: Character):
   for i in range(len(char.legendary)):
     for j in range(char.legendary[i]):
       leg_mark[i] += '+'
+  for aff in char.aff:
+    for i in range(len(aff[2])):
+      debuff_mark[aff[2][i]] += aff[3][i]
   for i in range(7):
-    printable += f"{leg_mark[i]}{num_to_stat[i]} - "\
-                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} {tal_mark[i]} "
     if char.hp <= 15:
-      printable += "(**-2**)"
+      debuff_mark[i] -= 2
+    printable += f"{leg_mark[i]}{num_to_stat[i]} - "\
+                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} "\
+                 f"{tal_mark[i]} "
+    if debuff_mark[i] != 0:
+      printable += f"({debuff_mark[i]})"
     printable += "\n"
-    
+
   for i in range(len(char.tal)):
     printable += (f"*TAL{i+1} - {char.tal[i][0]}*\n")
   printable += (f"HP - {char.hp}/{char.max_hp}\n")
@@ -287,6 +314,7 @@ def printleg(char: Character):
   return printable
 
 def printtal(char: Character):
+  # tal = [name, stat, mod_amount, desc]
   printable = ""
   if len(char.tal) == 0:
     return "You don't have any talismans!\n"
@@ -306,18 +334,16 @@ def printtal(char: Character):
 
 def printaff(char: Character):
   # aff = [name, tier, stat, mod_amount, desc]
-  printable ""
+  printable = ""
   if len(char.aff) == 0:
     return "You don't have any afflictions!\n"
   for i in range(len(char.aff)):
     cur_aff = char.aff[i]
-    printable += cur_aff[0] + " "
-    for i in cur_aff[1]:
-      printable += "I"
-    printable += "\n"
+    printable += f"**{cur_aff[0]} {cur_aff[1]}**\n"
     for i in range(len(cur_aff[2])):
-      printable += cur_aff[3][i] + " " + num_to_stat(cur_aff[2][i]]) + "\t"
-    printable += "\n"
+      printable += f"{cur_aff[3][i]} {num_to_stat[cur_aff[2][i]]}\t"
+    if len(cur_aff[2]) != 0:
+      printable += "\n"
     if cur_aff[4] != "":
       printable += f"*{cur_aff[4]}*\n"
     printable += "\n"
