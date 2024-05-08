@@ -303,3 +303,23 @@ def printtal(char: Character):
     printable += "\n"
 
   return printable
+
+def printaff(char: Character):
+  # aff = [name, tier, stat, mod_amount, desc]
+  printable ""
+  if len(char.aff) == 0:
+    return "You don't have any afflictions!\n"
+  for i in range(len(char.aff)):
+    cur_aff = char.aff[i]
+    printable += cur_aff[0] + " "
+    for i in cur_aff[1]:
+      printable += "I"
+    printable += "\n"
+    for i in range(len(cur_aff[2])):
+      printable += cur_aff[3][i] + " " + num_to_stat(cur_aff[2][i]]) + "\t"
+    printable += "\n"
+    if cur_aff[4] != "":
+      printable += f"*{cur_aff[4]}*\n"
+    printable += "\n"
+
+  return printable

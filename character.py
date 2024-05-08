@@ -17,7 +17,7 @@ class Character:
     self.luc = 2 + self.level
     self.stat = [0, 0, 0, 0, 0, 0, 0]
     self.tal = []
-    self.effect = []
+    self.aff = []
     self.ss = ""
     self.pt = ["", "", "", ""]
     self.id = ""

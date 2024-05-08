@@ -136,3 +136,6 @@ def modtal(char: Character, action: str, tal):
       f"*TAL{tal} - {removed_tal[0]}*\n"
   restat(char)
   return printable
+
+def modaff(char: Character, action: str, aff):
+  #TODO

@@ -59,7 +59,7 @@ jack_char.id = names["JACK"]
 def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
-          char.tal, char.effect, char.ss, char.pt, char.mod, char.legendary, 
+          char.tal, char.aff, char.ss, char.pt, char.mod, char.legendary, 
           char.id]
 
 def list_to_char(li_char: list):
@@ -68,7 +68,7 @@ def list_to_char(li_char: list):
   char.hp = li_char[3]
   char.thp = li_char[4]
   char.tal = list(li_char[5])
-  char.effect = list(li_char[6])
+  char.aff = list(li_char[6])
   char.ss = li_char[7]
   char.pt = list(li_char[8])
   char.mod = li_char[9]
@@ -136,7 +136,7 @@ async def on_message(message):
     else:
       await message.channel.send(random.choice(affection_back))
 
-  if"I HATE" in msg and "NINE" in msg:
+  if "I HATE" in msg and "NINE" in msg:
     await message.channel.send(random.choice(hatred_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
@@ -254,7 +254,7 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
-      # Prints out current level and XP
+        # Prints out current level and XP
         case 'LEVEL':
           if len(command) == 1:
             await message.channel.send(f"Level - LV{char.level}, "
@@ -304,6 +304,28 @@ async def on_message(message):
               printable = modify.modtal(char, action, int(command[2]))
             save_char(char)
             await message.channel.send(printable)
+
+        case 'AFF':
+          if len(command) == 1:
+            printable = printer.printaff(char)
+            await message.channel.send(printable)
+          else:
+            action = command[1]
+            if action == 'ADD':
+              aff_name = command[2]
+              aff_tier = command[3]
+              
+              i = 0;
+              aff_stat = []
+              aff_mod = []
+              for i in range(4, len(command))
+                if command[i] in modify.stat_to_int:
+                  aff_stat.append(command.pop(i))
+                  aff_stat.append(int(command.pop(i)))
+                  # TODO
+                
+                
+          
           
 
 my_secret = os.environ['TOKEN']
