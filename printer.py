@@ -6,9 +6,9 @@ num_to_stat = ["Strength", "Dexterity", "Charisma",
 
 def printRoman(number):
   num = [1, 4, 5, 9, 10, 40, 50, 90,
-      100, 400, 500, 900, 1000]
+        100, 400, 500, 900, 1000]
   sym = ["I", "IV", "V", "IX", "X", "XL",
-      "L", "XC", "C", "CD", "D", "CM", "M"]
+        "L", "XC", "C", "CD", "D", "CM", "M"]
   i = 12
   printable = ""
 
@@ -25,26 +25,21 @@ def printRoman(number):
 def printchar(char: Character):
   # Takes in a Character object
   # Returns a string that prints out a character's info
-  printable = ""
-  printable += f"__{char.name}: LV{char.level}, "
+  printable = []
+  printable_name = f"__{char.name}: LV{char.level}, "
   if char.level != 10:
-    printable += f"{char.xp}/{240 * char.level - 100}__\n"
+    printable_name += f"{char.xp}/{240 * char.level - 100}__"
   else:
-    printable += "**MAX LEVEL**\n"
+    printable_name += "**MAX LEVEL**"
+  printable.append(printable_name)
 
-  if char.hp <= 15:
-    printable += "**CRITICAL (-2 ALL)**\n"
   for i in char.aff:
-    printable += f"**{i[0]} {i[1]}**\n"
+    printable.append(f"**{i[0]} {i[1]}**")
   
   leg_mark = ["", "", "", "", "", "", ""]
   tal_mark = ["", "", "", "", "", "", ""]
-  bold_mark = ["", "", "", "", "", "", ""]
   debuff_mark = [0, 0, 0, 0, 0, 0, 0]
-  
-  for i in range(7):
-    if char.stat[i] - char.legendary[i] >= 12:
-      bold_mark[i] += "**"
+
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
     for j in range(len(cur_tal[1])):
@@ -58,21 +53,18 @@ def printchar(char: Character):
   for aff in char.aff:
     for i in range(len(aff[2])):
       debuff_mark[aff[2][i]] += aff[3][i]
+      
   for i in range(7):
-    if char.hp <= 15:
-      debuff_mark[i] -= 2
-    printable += f"{leg_mark[i]}{num_to_stat[i]} - "\
-                 f"{bold_mark[i]}{char.stat[i]}{bold_mark[i]} "\
-                 f"{tal_mark[i]} "
-    if debuff_mark[i] != 0:
-      printable += f"({debuff_mark[i]})"
-    printable += "\n"
+    printable_stat = f"{leg_mark[i]}{num_to_stat[i]} - "\
+                     f"{char.stat[i]} {tal_mark[i]}"
+    printable.append(printable_stat)
 
   for i in range(len(char.tal)):
-    printable += (f"*TAL{i+1} - {char.tal[i][0]}*\n")
-  printable += (f"HP - {char.hp}/{char.max_hp}\n")
+    printable.append(f"*TAL{i+1} - {char.tal[i][0]}*")
+  printable.append(f"HP - {char.hp}/{char.max_hp}")
   if char.thp > 0:
-    printable += (f"THP - {char.thp}\n")
+    printable.append(f"THP - {char.thp}")
+
   return printable
 
 

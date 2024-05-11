@@ -198,7 +198,7 @@ async def on_message(message):
         # Prints out character information
         case 'CHAR':
           if len(command) == 1:
-            printable = printer.printchar(char)
+            printable = "\n".join(printer.printchar(char))
             await message.channel.send(printable)
 
         # Prints out, or modifies HP
@@ -343,10 +343,7 @@ async def on_message(message):
               printable = modify.modaff(char, action, command[2])
             save_char(char)
             await message.channel.send(printable)
-                
-                
-          
-          
+
 
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
