@@ -142,7 +142,6 @@ def modtal(char: Character, action: str, tal):
   return printable
 
 def modaff(char: Character, action: str, aff):
-  #TODO
   printable = ""
   match action:
     case 'ADD':
@@ -159,3 +158,20 @@ def modaff(char: Character, action: str, aff):
           break
   restat(char)
   return printable
+
+def tick(char: Character):
+  printable = ""
+  bleed_counter = {
+    'I': -3,
+    'II': -5,
+    'III': -8,
+    'IV': -13,
+    'V': -21
+  }
+  for i in char.aff:
+    if i[0] == 'BLEEDING':
+      printable += f"**BLEEDING {i[1]}**\n"
+      printable += modhp(char, bleed_counter[i[1]])
+      break
+  return printable
+      

@@ -22,6 +22,11 @@ def printRoman(number):
       i -= 1
   return printable
 
+greetings_back = ["Hello!", "Hi!", "Good to see you!", "Howdy!"]
+affection_back = ["I'm honored?", "Uhm... who are you again?", 
+                  "I'm glad?", "Uh- Thanks!", "Thank you?"]
+hatred_back = ["Aw, what? Why?", ":(", "Well I uh, I hate you too!"]
+
 def printchar(char: Character):
   # Takes in a Character object
   # Returns a string that prints out a character's info

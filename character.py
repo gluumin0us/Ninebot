@@ -1,3 +1,5 @@
+import discord
+
 class Character:
   def __init__(self, name: str, level: int, xp: int):
     self.name = name
@@ -21,3 +23,4 @@ class Character:
     self.ss = ""
     self.pt = ["", "", "", ""]
     self.id = ""
+

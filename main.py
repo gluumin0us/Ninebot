@@ -4,16 +4,12 @@ import requests
 from time import sleep
 
 import discord
+from discord import app_commands
 from replit import db
 
 from character import Character
 import printer
 import modify
-
-"""
-str dex cha int att wil luc
- 0   1   2   3   4   5   6
-"""
 
 names = {
   # Names and their associated user IDs
@@ -27,6 +23,8 @@ names = {
   "PASTA": "251897105038180365",
   "DYLAN": "900187776836862003"
 }
+
+# db["name2id"] = names
 
 """
 my_char = Character("Simon", 1, 0)
@@ -107,11 +105,6 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
-greetings_back = ["Hello!", "Hi!", "Good to see you!", "Howdy!"]
-affection_back = ["I'm honored?", "Uhm... who are you again?", 
-                  "I'm glad?", "Uh- Thanks!", "Thank you?"]
-hatred_back = ["Aw, what? Why?", ":(", "Well I uh, I hate you too!"]
-
 @client.event
 async def on_ready():
   print(f'We have logged in as {client.user}')
@@ -127,16 +120,16 @@ async def on_message(message):
   msg = message.content.upper()
       
   if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
-    await message.channel.send(random.choice(greetings_back))
+    await message.channel.send(random.choice(printer.greetings_back))
 
   if ("I LOVE" in msg or "ILY" in msg) and "NINE" in msg:
     if id == names['MIKEY']:
       await message.channel.send("I love you too Mikey!")
     else:
-      await message.channel.send(random.choice(affection_back))
+      await message.channel.send(random.choice(printer.affection_back))
 
   if "I HATE" in msg and "NINE" in msg:
-    await message.channel.send(random.choice(hatred_back))
+    await message.channel.send(random.choice(printer.hatred_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
@@ -151,6 +144,7 @@ async def on_message(message):
       sleep(2)
       await message.channel.send(json_data['delivery'])
 
+
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
     original_command = original_msg.split('9..', 1)[1]
@@ -163,10 +157,12 @@ async def on_message(message):
       print("What's your command?")
     command = command.split()
     if len(command) > 1 and command[-2] == '-T':
-      id = names[command[-1]]
+      id = db["name2id"][command[-1]]
       command.pop()
       command.pop()
     char = find_char(id)
+    if command[0] == 'REGISTER' or command[0] == 'HELP':
+      char = True
     if char:
       match command[0]:
 
@@ -261,6 +257,13 @@ async def on_message(message):
           if len(command) == 1:
             await message.channel.send(f"Level - LV{char.level}, "
                                        f"{char.xp}/{240 * char.level - 100}")
+          if len(command) == 3 and command[1] == "SET":
+            printable = f"Level - LV{char.level} -> **LV{command[2]}**, "\
+            f"{char.xp}/{240*char.level-100} -> **0/{240*int(command[2])-100}**"
+            char.level = int(command[2])
+            char.xp = 0
+            save_char(char)
+            await message.channel.send(printable)
 
         case 'LEGEND':
           if len(command) == 1:
@@ -344,6 +347,31 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
+        case 'REGISTER':
+          if id in db:
+            await message.channel.send("You already have a character!")
+          elif len(command) == 1:
+            await message.channel.send("You need to input a name!\n "\
+            "e.g. 9..register Felix")
+          elif len(command) == 2:
+            new_name = command[1]
+            new_char = Character(new_name.capitalize(), 1, 0)
+            db["name2id"][new_name] = id
+            db[id] = char_to_list(new_char)
+            char_cache[id] = new_char
+            await message.channel.send("New character registered!\n"\
+              f"Welcome to the Magic Casino, {new_name.capitalize()}!")
 
+        case 'TICK':
+          if len(command) == 1:
+            printable = modify.tick(char)
+            save_char(char)
+            await message.channel.send(printable)
+
+    else:
+      await message.channel.send("You don't have a character yet!"\
+                                 "Make one with `9..register`, or check out "\
+                                 "9..help for more info!")
+      
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
