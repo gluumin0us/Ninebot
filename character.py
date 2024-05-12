@@ -20,7 +20,7 @@ class Character:
     self.stat = [0, 0, 0, 0, 0, 0, 0]
     self.tal = []
     self.aff = []
-    self.ss = ""
+    self.rep = 0
     self.pt = ["", "", "", ""]
     self.id = ""
 

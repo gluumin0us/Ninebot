@@ -24,39 +24,39 @@ names = {
   "DYLAN": "900187776836862003"
 }
 
-# db["name2id"] = names
+admins = ["531288319859097601", "262320046653702145"]
+db["ADMINS"] = admins
 
-"""
-my_char = Character("Simon", 1, 0)
-my_char.legendary[3] += 1
-my_char.legendary[5] += 1
-my_char.id = "262320046653702145"
 
-felix_char = Character("Felix", 2, 20)
-felix_char.legendary[5] += 1
-felix_char.id = names["FELIX"]
+# my_char = Character("Simon", 1, 0)
+# my_char.legendary[3] += 1
+# my_char.legendary[5] += 1
+# my_char.id = "262320046653702145"
 
-mike_char = Character("Michael", 3, 164)
-mike_char.legendary = [1, 0, 1, 0, 1, 2, 0]
-mike_char.talisman("Pearl Necklace", 0, 0)
-mike_char.id = names["MIKEY"]
-"""
-"""
-jack_char = Character("Jack", 9, 1495)
-jack_char.legendary[4] += 2
-jack_char.legendary[5] += 1
-jack_char.legendary[6] += 1
-#jack_char.tal.append["Vision's Necklace", 5, 1, ""]
-#jack_char.talisman("Wrapped Ribbon", 1, 2)
-#jack_char.talisman("Dragon's Bane Armor", 4, 4)
-jack_char.thp = 40
-jack_char.id = names["JACK"]
-"""
+# felix_char = Character("Felix", 2, 20)
+# felix_char.legendary[5] += 1
+# felix_char.id = names["FELIX"]
+
+# mike_char = Character("Michael", 3, 164)
+# mike_char.legendary = [1, 0, 1, 0, 1, 2, 0]
+# mike_char.id = names["MIKEY"]
+
+
+# jack_char = Character("Jack", 9, 1495)
+# jack_char.legendary[4] += 2
+# jack_char.legendary[5] += 1
+# jack_char.legendary[6] += 1
+# #jack_char.tal.append["Vision's Necklace", 5, 1, ""]
+# #jack_char.talisman("Wrapped Ribbon", 1, 2)
+# #jack_char.talisman("Dragon's Bane Armor", 4, 4)
+# jack_char.thp = 40
+# jack_char.id = names["JACK"]
+
 
 def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
-          char.tal, char.aff, char.ss, char.pt, char.mod, char.legendary, 
+          char.tal, char.aff, char.rep, char.pt, char.mod, char.legendary, 
           char.id]
 
 def list_to_char(li_char: list):
@@ -66,7 +66,7 @@ def list_to_char(li_char: list):
   char.thp = li_char[4]
   char.tal = list(li_char[5])
   char.aff = list(li_char[6])
-  char.ss = li_char[7]
+  char.rep = li_char[7]
   char.pt = list(li_char[8])
   char.mod = li_char[9]
   char.legendary = li_char[10]
@@ -165,10 +165,6 @@ async def on_message(message):
       char = True
     if char:
       match command[0]:
-
-        case 'TEST':
-          embedVar = printer.test_embed(requester)
-          await message.channel.send(embed=embedVar)
       
         # Prints out helpful information
         case 'HELP':
@@ -265,6 +261,7 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
+        # Prints out, or modifies legendary bonuses
         case 'LEGEND':
           if len(command) == 1:
             printable = printer.printleg(char)
@@ -274,6 +271,7 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
+        # Prints out, adds, or removes talismans
         case 'TAL':
           if len(command) == 1:
             printable = printer.printtal(char)
@@ -310,6 +308,7 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
+        # Prints out, adds, or removes afflictions
         case 'AFF':
           if len(command) == 1:
             printable = printer.printaff(char)
@@ -347,6 +346,7 @@ async def on_message(message):
             save_char(char)
             await message.channel.send(printable)
 
+        # Registers a new character if one does not exist
         case 'REGISTER':
           if id in db:
             await message.channel.send("You already have a character!")
@@ -356,22 +356,73 @@ async def on_message(message):
           elif len(command) == 2:
             new_name = command[1]
             new_char = Character(new_name.capitalize(), 1, 0)
+            new_char.id = id
             db["name2id"][new_name] = id
             db[id] = char_to_list(new_char)
             char_cache[id] = new_char
             await message.channel.send("New character registered!\n"\
               f"Welcome to the Magic Casino, {new_name.capitalize()}!")
 
+        case 'UNREGISTER':
+          if len(command) == 1:
+            db.pop(id)
+            char_cache.pop(id)
+
+        # Ticks forward certain effects like bleeding
         case 'TICK':
           if len(command) == 1:
             printable = modify.tick(char)
             save_char(char)
             await message.channel.send(printable)
 
+        # Prints out a list of admins (WIP)
+        case 'ADMIN':
+          if len(command) == 1:
+            printable = "Current Admins:\n"
+            for member_id in db['ADMINS']:
+              member = await client.fetch_user(int(member_id))
+              printable += f"{member.display_name}\t"
+            await message.channel.send(printable)
+
+        # Takes in a user ID to output the tul commands to copy them
+        case 'CLONE':
+          if len(command) == 2:
+            clone_id = int(command[1])
+            clone = await client.fetch_user(int(clone_id))
+            clone_name = clone.display_name
+            clone_avatar = str(clone.avatar)
+            await message.channel.send(
+              f"`tul!register '{clone_name}' text>>{clone_name}`"
+            )
+            await message.channel.send(
+              f"`tul!avatar '{clone_name}' {clone_avatar}`"
+            )
+
+        # Prints out, or modifies reputation.
+        case 'REP':
+          if len(command) == 1:
+            printable = f"Current Rep for {char.name}: {char.rep}\n"
+            if char.rep <= 0:
+              printable += "**DEADBEAT**"
+          elif len(command) == 2:
+            printable = f"Rep for {char.name}: {char.rep} -> "
+            char.rep += int(command[1])
+            printable += f"**{char.rep}**\n"
+            if char.rep <= 0:
+              printable += "**DEADBEAT**"
+            save_char(char)
+          elif len(command) == 3 and command[1] == 'SET':
+            printable = f"Rep for {char.name}: {char.rep} -> "
+            char.rep = int(command[2])
+            printable += f"**{char.rep}**\n"
+            save_char(char)
+          await message.channel.send(printable)
+            
+
     else:
       await message.channel.send("You don't have a character yet!"\
                                  "Make one with `9..register`, or check out "\
-                                 "9..help for more info!")
+                                 "`9..help` for more info!")
       
 my_secret = os.environ['TOKEN']
 client.run(my_secret)

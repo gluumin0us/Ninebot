@@ -38,12 +38,19 @@ def printchar(char: Character):
     printable_name += "**MAX LEVEL**"
   printable.append(printable_name)
 
-  for i in char.aff:
-    printable.append(f"**{i[0]} {i[1]}**")
-  
   leg_mark = ["", "", "", "", "", "", ""]
   tal_mark = ["", "", "", "", "", "", ""]
   debuff_mark = [0, 0, 0, 0, 0, 0, 0]
+  
+  if char.hp <= 15:
+    printable.append("**CRITICAL (-2 ALL)**")
+    for i in range(len(debuff_mark)):
+      debuff_mark[i] -= 2
+  
+  for i in char.aff:
+    printable.append(f"**{i[0]} {i[1]}**")
+  
+
 
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
@@ -61,7 +68,7 @@ def printchar(char: Character):
       
   for i in range(7):
     printable_stat = f"{leg_mark[i]}{num_to_stat[i]} - "\
-                     f"{char.stat[i]} {tal_mark[i]}"
+                     f"{char.stat[i]} {tal_mark[i]} ({debuff_mark[i]})"
     printable.append(printable_stat)
 
   for i in range(len(char.tal)):
@@ -135,23 +142,33 @@ def printhelp(cmd: str, requester):
 
       embed.add_field(name="\n", value="\n", inline=False)
 
-      embed.add_field(name="Command",
-      value="**9..help**\n\n**9..char**\n\n**9..hp**\n\n"\
-          "**9..thp**\n\n**9..roll**\n\n**9..xp**\n\n"\
-          "**9..level**\n\n**9..legend**\n\n**9..tal**\n\n",
-      inline=True)
+      embed.add_field(name="Commands",
+      value="__**9..help**__\t"\
+        "  Gives you information on me, or a specific command.\n"\
+        "__**9..char**__\t"\
+        "  Prints out your character stats.\n"\
+        "__**9..hp**__\t"\
+        "  Prints out, or modifies, your HP.\n"\
+        "__**9..thp**__\t"\
+        "  Prints out, or modifies, your temp HP specifically.\n"\
+        "__**9..roll**__\t"\
+        "  Rolls a d20, and can optionally add your stats.\n"\
+        "__**9..xp**__\t"\
+        "  Prints out, or modifies, your XP.\n"\
+        "__**9..level**__\t"\
+        "  Prints out, or sets your current level.\n"\
+        "__**9..legend**__\t"\
+        "  Prints out, or modifies, your legendary bonuses.\n"\
+        "__**9..tal**__\t"\
+        "  Prints out, adds, or removes talismans.\n"\
+        "__**9..aff**__\t"\
+        "  Prints out, adds, or removes afflictions.\n"\
+        "__**9..register**__\t"\
+        "  Registers yourself a character if you don't have one.\n"\
+        "__**9..tick**__\t"\
+        "  Advances any persistent effects such as bleeding.\n",
+        inline=False)
 
-      embed.add_field(name="Description",
-      value="Gives you information on me, or a specific command.\n\n"\
-            "Prints out your character stats.\n\n"\
-            "Prints out, or modifies, your HP.\n\n"\
-            "Prints out, or modifies, your temp HP specifically.\n\n"\
-            "Rolls a d20, and can optionally add your stats.\n\n"\
-            "Prints out, or modifies, your XP.\n\n"\
-            "Prints out your current level and XP.\n\n"\
-            "Prints out, or modifies, your legendary bonuses.\n\n"\
-            "Prints out, adds, or removes talismans.\n\n",
-      inline=True)
       return embed
 
     case "HELP":
@@ -295,6 +312,55 @@ def printhelp(cmd: str, requester):
                   "Some say that this heart can pump pure traxon through "\
                   "a person's veins.\n```",
       colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "AFF":
+      embed = discord.Embed(title="9..aff",
+        description="This command will show you your current "\
+              "afflictions, which stats they're impacting, and their descriptions"\
+              "if you run it without arguments.\n\n"\
+              "To add an affliction to your character, do the following: \n"\
+              "`9..aff add <name> <tier> <the stat it modifies> "\
+              "<how much it modifies the stat> <optional description>`\n"\
+              "e.g. `9..tal add poisoned 2 str -3` "\
+              "will give you the affliction 'poisoned II' "\
+              "that decreases your strength by 3.\n\n"\
+              "Your affliction can also affect multiple stats at once.\n"\
+              "e.g. `9..aff add Delusional cha -1 will -2 A powerful curse "\
+              "that blends together one's dreams and reality.` "\
+              "will give you an affliction that "\
+              "decreases your charisma by one and willpower by 2, with a short "\
+              "description to boot. Note that you don't have to specify a tier.\n\n"
+              "To remove an affliction, do `9..aff rm <affliction name>`.\n"\
+              "e.g. `9..aff rm hobbled` will remove your Hobbled status.\n\n"\
+              "Take note that the afflictions command will only take single "\
+              "word names, so make sure to hyphenate any two-or-more-word "\
+              "afflictions.\n",
+        colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "REGISTER":
+      embed = discord.Embed(title="9..register",
+        description="This command will register a new character for you "\
+                    "if one does not exist already in the database.\n\n"\
+                    "Run this command with a single word for your name, "\
+                    "like this: `9..register Felix`.\n\n"\
+                    "Newly registered characters will always start at lv1.\n",
+        colour=0xff6600)
+  
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "TICK":
+      embed = discord.Embed(title="9..tick",
+        description="This command will tick forward any persistent "\
+                  "tickable effects by one round. Right now, the only "\
+                  "such effect is bleeding, but there may be more in the future.\n",
+        colour=0xff6600)
 
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed

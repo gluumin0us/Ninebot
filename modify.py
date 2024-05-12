@@ -173,5 +173,8 @@ def tick(char: Character):
       printable += f"**BLEEDING {i[1]}**\n"
       printable += modhp(char, bleed_counter[i[1]])
       break
+
+  if printable == "":
+    printable += "No tickable persistent effects found."
   return printable
       
