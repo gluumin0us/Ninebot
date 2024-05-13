@@ -57,7 +57,7 @@ def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
           char.tal, char.aff, char.rep, char.pt, char.mod, char.legendary, 
-          char.id]
+          char.id, char.update_message]
 
 def list_to_char(li_char: list):
   # Converts a character from a list to a Character object
@@ -71,6 +71,7 @@ def list_to_char(li_char: list):
   char.mod = li_char[9]
   char.legendary = li_char[10]
   char.id = li_char[11]
+  char.update_message = li_char[12]
   modify.restat(char)
   return char
 
@@ -94,11 +95,31 @@ def find_char(id: str):
   else:
     return False
 
-def save_char(char: Character):
+async def save_char(char: Character):
   # Saves a character's changes to the database,
   # Assuming there's already a copy there.
   char_list = char_to_list(char)
   db[char.id] = char_list
+  deleted_messages = []
+  for i in range(len(char.update_message)):
+    channel_id, message_id = char.update_message[i]
+    channel_to_edit = client.get_channel(channel_id)
+    try:
+      message_to_edit = await channel_to_edit.fetch_message(message_id)
+      printable = "\n".join(printer.printchar(char))
+      await message_to_edit.edit(content=printable)
+      print("Message updated!")
+    except discord.NotFound:
+      deleted_messages.append(i)
+  deleted_messages.reverse()
+  for i in deleted_messages:
+    char.update_message.pop(i)
+
+# RUN ONE TIME COMMANDS HERE
+
+
+
+############################
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -111,10 +132,32 @@ async def on_ready():
   await client.change_presence(activity=discord.Game('9..help'))
 
 @client.event
+async def on_message_delete(message):
+  print("Message deleted.")
+  msg = message.content.upper()
+  if msg.startswith("__"):
+    msg = msg.split('__', 1)[1]
+    msg = msg.split(':', 1)[0]
+    print(msg)
+    if msg in db['name2id']:
+      id = db['name2id'][msg]
+      char = find_char(id)
+      for i in range(len(char.update_message)):
+        channel_id, message_id = char.update_message[i]
+        if message_id == message.id:
+          char.update_message.pop(i)
+          await save_char(char)
+          await message.channel.send(
+            f"Linked Character sheet deleted for {char.name}.\n")
+          break
+          
+
+@client.event
 async def on_message(message):
   if message.author == client.user:
     return
   id = str(message.author.id)
+  channel_id = message.channel.id
   requester = (message.author.display_name, str(message.author.display_avatar))
   original_msg = message.content
   msg = message.content.upper()
@@ -202,7 +245,7 @@ async def on_message(message):
           elif len(command) == 2:
             hp_change = 500 if command[1] == "FULL" else int(command[1])
             printable = modify.modhp(char, hp_change)
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
             
         # Prints out, or modifies THP
@@ -214,7 +257,7 @@ async def on_message(message):
             char.thp += int(command[1])
             if char.thp < 0:
               char.thp = 0
-            save_char(char)
+            await save_char(char)
             await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
 
         # Rolls a d20, and optionally adds stats
@@ -245,20 +288,24 @@ async def on_message(message):
           elif len(command) == 2:
             xp_change = int(command[1])
             printable = modify.modxp(char, xp_change)
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
 
         # Prints out current level and XP
-        case 'LEVEL':
+        case 'LEVEL': 
           if len(command) == 1:
             await message.channel.send(f"Level - LV{char.level}, "
                                        f"{char.xp}/{240 * char.level - 100}")
           if len(command) == 3 and command[1] == "SET":
             printable = f"Level - LV{char.level} -> **LV{command[2]}**, "\
             f"{char.xp}/{240*char.level-100} -> **0/{240*int(command[2])-100}**"
+            old_level = char.level
             char.level = int(command[2])
             char.xp = 0
-            save_char(char)
+            modify.restat(char)
+            if old_level != char.level:
+              char.hp = char.max_hp
+            await save_char(char)
             await message.channel.send(printable)
 
         # Prints out, or modifies legendary bonuses
@@ -268,7 +315,7 @@ async def on_message(message):
             await message.channel.send(printable)
           elif len(command) == 3:
             printable = modify.modleg(char, command[1], int(command[2]))
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
 
         # Prints out, adds, or removes talismans
@@ -305,7 +352,7 @@ async def on_message(message):
               printable = modify.modtal(char, action, tal)
             elif action == 'RM':
               printable = modify.modtal(char, action, int(command[2]))
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
 
         # Prints out, adds, or removes afflictions
@@ -343,7 +390,7 @@ async def on_message(message):
               
             elif action == 'RM':
               printable = modify.modaff(char, action, command[2])
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
 
         # Registers a new character if one does not exist
@@ -357,6 +404,7 @@ async def on_message(message):
             new_name = command[1]
             new_char = Character(new_name.capitalize(), 1, 0)
             new_char.id = id
+            modify.restat(new_char)
             db["name2id"][new_name] = id
             db[id] = char_to_list(new_char)
             char_cache[id] = new_char
@@ -366,13 +414,14 @@ async def on_message(message):
         case 'UNREGISTER':
           if len(command) == 1:
             db.pop(id)
-            char_cache.pop(id)
+            rm_char = char_cache.pop(id)
+            await message.channel.send(f"Character unregistered: {rm_char.name}")
 
         # Ticks forward certain effects like bleeding
         case 'TICK':
           if len(command) == 1:
             printable = modify.tick(char)
-            save_char(char)
+            await save_char(char)
             await message.channel.send(printable)
 
         # Prints out a list of admins (WIP)
@@ -410,17 +459,62 @@ async def on_message(message):
             printable += f"**{char.rep}**\n"
             if char.rep <= 0:
               printable += "**DEADBEAT**"
-            save_char(char)
+            await save_char(char)
           elif len(command) == 3 and command[1] == 'SET':
             printable = f"Rep for {char.name}: {char.rep} -> "
             char.rep = int(command[2])
             printable += f"**{char.rep}**\n"
-            save_char(char)
+            await save_char(char)
           await message.channel.send(printable)
+
+        case 'ALL-LEVELS':
+          if len(command) == 1:
+            print("all levels case entered")
+            not_first = False
+            for cur_char_id in db["name2id"]:
+              cur_char = find_char(db["name2id"][cur_char_id])
+              if cur_char:
+                printable = "\n".join(printer.printchar(cur_char))
+                if not_first:
+                  await message.channel.send("​")
+                msg = await message.channel.send(printable)
+                not_first = True
+                channel_id = message.channel.id
+                cur_char.update_message.append((channel_id, msg.id))
+                await save_char(cur_char)
+          elif len(command) == 2 and command[1] == 'RESET':
+            for cur_char_name in db["name2id"]:
+              cur_char = find_char(db["name2id"][cur_char_name])
+              if cur_char:
+                cur_char.update_message = []
+            await message.channel.send("Update Messages reset.")
+          elif len(command) == 3 and command[1] == 'ADD':
+            print(f"Add case entered, adding {command[2]}")
+            cur_char = find_char(db['name2id'][command[2]])
+            if cur_char:
+              print("Now adding.")
+              printable = "\n".join(printer.printchar(cur_char))
+              msg = await message.channel.send(printable)
+              channel_id = message.channel.id
+              cur_char.update_message.append((channel_id, msg.id))
+              await save_char(cur_char)
+
+        case 'DB':
+          if len(command) == 1:
+            printable = ""
+            for key in db.keys():
+              printable += f"{key}\t"
+            await message.channel.send(printable)
+          elif len(command) == 2:
+            key = command[1].lower()
+            if key in db:
+              printable = db[key]
+              await message.channel.send(printable)
+            
             
 
     else:
-      await message.channel.send("You don't have a character yet!"\
+      await message.channel.send("You don't have a character yet! "\
                                  "Make one with `9..register`, or check out "\
                                  "`9..help` for more info!")
       

@@ -23,4 +23,5 @@ class Character:
     self.rep = 0
     self.pt = ["", "", "", ""]
     self.id = ""
+    self.update_message = []
 

@@ -68,7 +68,9 @@ def printchar(char: Character):
       
   for i in range(7):
     printable_stat = f"{leg_mark[i]}{num_to_stat[i]} - "\
-                     f"{char.stat[i]} {tal_mark[i]} ({debuff_mark[i]})"
+                     f"{char.stat[i]} {tal_mark[i]} "
+    if debuff_mark[i] != 0:
+      printable_stat += f"({str(debuff_mark[i])})"
     printable.append(printable_stat)
 
   for i in range(len(char.tal)):

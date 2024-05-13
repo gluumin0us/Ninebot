@@ -18,6 +18,7 @@ def restat(char: Character):
   for i in char.aff:
     for j in range(len(i[2])):
       char.stat[i[2][j]] += i[3][j]
+  char.max_hp = 40 + char.level * 5
 
 def modhp(char: Character, hp_change: int):
   printable = ""
