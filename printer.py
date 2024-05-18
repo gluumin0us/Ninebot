@@ -25,7 +25,6 @@ def printRoman(number):
 greetings_back = ["Hello!", "Hi!", "Good to see you!", "Howdy!"]
 affection_back = ["I'm honored?", "Uhm... who are you again?", 
                   "I'm glad?", "Uh- Thanks!", "Thank you?"]
-hatred_back = ["Aw, what? Why?", ":(", "Well I uh, I hate you too!"]
 
 def printchar(char: Character):
   # Takes in a Character object
@@ -50,7 +49,6 @@ def printchar(char: Character):
   for i in char.aff:
     printable.append(f"**{i[0]} {i[1]}**")
   
-
 
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]

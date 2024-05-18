@@ -101,19 +101,28 @@ async def save_char(char: Character):
   char_list = char_to_list(char)
   db[char.id] = char_list
   deleted_messages = []
-  for i in range(len(char.update_message)):
-    channel_id, message_id = char.update_message[i]
+  if char.id not in db['linked_csh']:
+    db['linked_csh'][char.id] = []
+  links = db['linked_csh'][char.id]
+  for link in links:
+    channel_id, message_id = link
     channel_to_edit = client.get_channel(channel_id)
     try:
       message_to_edit = await channel_to_edit.fetch_message(message_id)
-      printable = "\n".join(printer.printchar(char))
+      printable = ":link: "
+      printable += "\n".join(printer.printchar(char))
       await message_to_edit.edit(content=printable)
       print("Message updated!")
-    except discord.NotFound:
-      deleted_messages.append(i)
-  deleted_messages.reverse()
-  for i in deleted_messages:
-    char.update_message.pop(i)
+    except:
+      pass
+      
+def check_csh(msg: str):
+  if msg.startswith("__"):
+    msg = msg.split('__', 1)[1]
+    msg = msg.split(':', 1)[0].upper()
+    if msg in db['name2id']:
+      return db['name2id'][msg]
+  return False
 
 # RUN ONE TIME COMMANDS HERE
 
@@ -123,6 +132,7 @@ async def save_char(char: Character):
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True
 
 client = discord.Client(intents=intents)
 
@@ -132,25 +142,60 @@ async def on_ready():
   await client.change_presence(activity=discord.Game('9..help'))
 
 @client.event
-async def on_message_delete(message):
+async def on_guild_join(guild):
+  for channel in guild.channels:
+    if "the-streets" == channel.name:
+      await channel.send("Hello! I'm Nine, glad to be here!\n")
+      break
+
+@client.event
+async def on_raw_message_delete(payload):
   print("Message deleted.")
-  msg = message.content.upper()
-  if msg.startswith("__"):
-    msg = msg.split('__', 1)[1]
-    msg = msg.split(':', 1)[0]
-    print(msg)
-    if msg in db['name2id']:
-      id = db['name2id'][msg]
-      char = find_char(id)
-      for i in range(len(char.update_message)):
-        channel_id, message_id = char.update_message[i]
-        if message_id == message.id:
-          char.update_message.pop(i)
-          await save_char(char)
-          await message.channel.send(
-            f"Linked Character sheet deleted for {char.name}.\n")
-          break
-          
+  for cur_char in db['linked_csh']:
+    links = db['linked_csh'][cur_char]
+    for link in links:
+      channel_id, message_id = link
+      if message_id == payload.message_id:
+        db['linked_csh'][cur_char].remove(link)
+        await client.get_channel(payload.channel_id).send("Linked CSH deleted.")
+        break
+  
+
+@client.event
+async def on_raw_reaction_add(payload):
+  rtn_name = str(payload.emoji.name)
+  channel = client.get_channel(payload.channel_id)
+  msg = await channel.fetch_message(payload.message_id)
+  print(f"Reaction detected: {rtn_name}")
+  match rtn_name:
+    case '🔗':
+      print("case LINK entered.")
+      msg_content = msg.content
+      id = check_csh(msg_content)
+      print(f"ID: {id}")
+      if id:
+        if id not in db['linked_csh']:
+          db['linked_csh'][id] = []
+        db['linked_csh'][id].append((payload.channel_id, payload.message_id))
+        await msg.remove_reaction(payload.emoji, payload.member)
+        await save_char(find_char(id))
+        
+    case '❌':
+      print("case X entered.")
+      msg_content = msg.content
+      if msg_content.startswith(':link: '):
+        msg_content = msg_content.split(':link: ', 1)[1]
+        id = check_csh(msg_content)
+        print(f"ID: {id}")
+        if id in db['linked_csh']:
+          for i in range(len(db['linked_csh'][id])):
+            channel_id, message_id = db['linked_csh'][id][i]
+            if message_id == payload.message_id:
+              db['linked_csh'][id].pop(i)
+              await msg.edit(content=msg_content)
+              break
+          await msg.remove_reaction(payload.emoji, payload.member)
+      
 
 @client.event
 async def on_message(message):
@@ -170,9 +215,6 @@ async def on_message(message):
       await message.channel.send("I love you too Mikey!")
     else:
       await message.channel.send(random.choice(printer.affection_back))
-
-  if "I HATE" in msg and "NINE" in msg:
-    await message.channel.send(random.choice(printer.hatred_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
     await message.channel.send("You're welcome!")
@@ -211,13 +253,14 @@ async def on_message(message):
       
         # Prints out helpful information
         case 'HELP':
+          await message.delete()
           printable = ""
           if len(command) == 1:
             printable = printer.printhelp("MAIN", requester)
-            await message.channel.send(embed=printable)
+            await message.author.send(embed=printable)
           elif len(command) == 2:
             printable = printer.printhelp(command[1], requester)
-            await message.channel.send(embed=printable)
+            await message.author.send(embed=printable)
         
         # Tells a joke
         case 'JOKE':
@@ -239,37 +282,38 @@ async def on_message(message):
         # Prints out, or modifies HP
         case 'HP':
           if len(command) == 1:
+            printable = ""
             if char.thp > 0:
-              await message.channel.send(f"THP - {char.thp}")
-            await message.channel.send(f"HP - {char.hp} / {char.max_hp}")
+              printable += f"THP - {char.thp}\n"
+            await message.reply(printable + f"HP - {char.hp} / {char.max_hp}")
           elif len(command) == 2:
             hp_change = 500 if command[1] == "FULL" else int(command[1])
             printable = modify.modhp(char, hp_change)
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
             
         # Prints out, or modifies THP
         case 'THP':
           if len(command) == 1:
-            await message.channel.send(f"THP - {char.thp}")
+            await message.reply(f"THP - {char.thp}")
           elif len(command) == 2:
             old_thp = char.thp
             char.thp += int(command[1])
             if char.thp < 0:
               char.thp = 0
             await save_char(char)
-            await message.channel.send(f"THP - {old_thp} -> **{char.thp}**")
+            await message.reply(f"THP - {old_thp} -> **{char.thp}**")
 
         # Rolls a d20, and optionally adds stats
         case 'ROLL':
           result = random.randint(1, 20)
           if len(command) == 1:
-            await message.channel.send (f"Rolling a d20... **-{result}-**")
+            await message.reply (f"Rolling a d20... **-{result}-**")
             if result == 20:
               await message.channel.send("**Natural 20!**")
           elif len(command) == 2:
             printable = printer.printroll(char, result, command[1])
-            await message.channel.send(printable)
+            await message.reply(printable)
             if result == 20:
               legendary = random.randint(1, 10)
               await message.channel.send("Rolling for legendaries...")
@@ -284,17 +328,17 @@ async def on_message(message):
         # Prints out, or modifies XP
         case 'XP':
           if len(command) == 1:
-            await message.channel.send(f"XP - {char.xp}/{240 * char.level - 100}")
+            await message.reply(f"XP - {char.xp}/{240 * char.level - 100}")
           elif len(command) == 2:
             xp_change = int(command[1])
             printable = modify.modxp(char, xp_change)
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
 
         # Prints out current level and XP
         case 'LEVEL': 
           if len(command) == 1:
-            await message.channel.send(f"Level - LV{char.level}, "
+            await message.reply(f"Level - LV{char.level}, "
                                        f"{char.xp}/{240 * char.level - 100}")
           if len(command) == 3 and command[1] == "SET":
             printable = f"Level - LV{char.level} -> **LV{command[2]}**, "\
@@ -306,17 +350,17 @@ async def on_message(message):
             if old_level != char.level:
               char.hp = char.max_hp
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
 
         # Prints out, or modifies legendary bonuses
         case 'LEGEND':
           if len(command) == 1:
             printable = printer.printleg(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
           elif len(command) == 3:
             printable = modify.modleg(char, command[1], int(command[2]))
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
 
         # Prints out, adds, or removes talismans
         case 'TAL':
@@ -353,7 +397,7 @@ async def on_message(message):
             elif action == 'RM':
               printable = modify.modtal(char, action, int(command[2]))
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable)
 
         # Prints out, adds, or removes afflictions
         case 'AFF':
@@ -411,6 +455,7 @@ async def on_message(message):
             await message.channel.send("New character registered!\n"\
               f"Welcome to the Magic Casino, {new_name.capitalize()}!")
 
+        # Unregisters an existing character.
         case 'UNREGISTER':
           if len(command) == 1:
             db.pop(id)
@@ -467,38 +512,47 @@ async def on_message(message):
             await save_char(char)
           await message.channel.send(printable)
 
+        # Makes, or resets linked CSHs for all characters.
         case 'ALL-LEVELS':
           if len(command) == 1:
             print("all levels case entered")
             not_first = False
-            for cur_char_id in db["name2id"]:
-              cur_char = find_char(db["name2id"][cur_char_id])
+            for cur_char_name in db["name2id"]:
+              cur_id = db["name2id"][cur_char_name]
+              cur_char = find_char(cur_id)
               if cur_char:
-                printable = "\n".join(printer.printchar(cur_char))
+                printable = ":link:  "
+                printable += "\n".join(printer.printchar(cur_char))
                 if not_first:
                   await message.channel.send("​")
                 msg = await message.channel.send(printable)
                 not_first = True
                 channel_id = message.channel.id
                 cur_char.update_message.append((channel_id, msg.id))
+                if cur_id not in db['linked_csh']:
+                  db['linked_csh'][cur_id] = []
+                db['linked_csh'][cur_id].append((channel_id, msg.id))
                 await save_char(cur_char)
           elif len(command) == 2 and command[1] == 'RESET':
-            for cur_char_name in db["name2id"]:
-              cur_char = find_char(db["name2id"][cur_char_name])
-              if cur_char:
-                cur_char.update_message = []
+            for cur_char in db["linked_csh"]:
+              db['linked_csh'][cur_char] = []
             await message.channel.send("Update Messages reset.")
           elif len(command) == 3 and command[1] == 'ADD':
             print(f"Add case entered, adding {command[2]}")
-            cur_char = find_char(db['name2id'][command[2]])
+            cur_id = db["name2id"][command[2]]
+            cur_char = find_char(cur_id)
             if cur_char:
-              print("Now adding.")
-              printable = "\n".join(printer.printchar(cur_char))
+              printable = ":link: "
+              printable += "\n".join(printer.printchar(cur_char))
               msg = await message.channel.send(printable)
               channel_id = message.channel.id
               cur_char.update_message.append((channel_id, msg.id))
+              if cur_id not in db['linked_csh']:
+                db['linked_csh'][cur_id] = []
+              db['linked_csh'][cur_id].append((channel_id, msg.id))
               await save_char(cur_char)
 
+        # Shows the data stored in the database.
         case 'DB':
           if len(command) == 1:
             printable = ""
@@ -512,7 +566,6 @@ async def on_message(message):
               await message.channel.send(printable)
             
             
-
     else:
       await message.channel.send("You don't have a character yet! "\
                                  "Make one with `9..register`, or check out "\
