@@ -10,6 +10,7 @@ from replit import db
 from character import Character
 import printer
 import modify
+import spells
 
 names = {
   # Names and their associated user IDs
@@ -269,7 +270,10 @@ async def on_message(message):
       print("What's your command?")
     command = command.split()
     if len(command) > 1 and command[-2] == '-T':
-      id = db["name2id"][command[-1]]
+      try:
+        id = db["name2id"][command[-1]]
+      except:
+        await message.channel.send("Error: target name not found.\n")
       command.pop()
       command.pop()
     char = find_char(id)
@@ -592,12 +596,23 @@ async def on_message(message):
               printable = db[key]
               await message.channel.send(printable)
 
+        # Sends someone a DM via Nine.
         case 'DM':
           if len(command) > 1:
             user = await client.fetch_user(int(id))
             original_command.pop(0)
             printable = " ".join(original_command)
             await user.send(content=printable)
+
+        case 'CAST':
+          if len(command) == 2:
+            printable = ""
+            for i in range(len(spells.spell_root)):
+              if command[1] == spells.spell_root[i]:
+                printable += f"{message.author.display_name} is casting "\
+                f"{spells.spell_name[i]}!\n\"{spells.spell_incantation[i]}\""
+                break
+            await message.channel.send(printable)
             
             
     else:
