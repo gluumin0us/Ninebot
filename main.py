@@ -25,8 +25,8 @@ names = {
 }
 
 admins = ["531288319859097601", "262320046653702145"]
-db["ADMINS"] = admins
 
+ARCHIVE_ID = 1241883869549170748
 
 # my_char = Character("Simon", 1, 0)
 # my_char.legendary[3] += 1
@@ -207,6 +207,32 @@ async def on_message(message):
   requester = (message.author.display_name, str(message.author.display_avatar))
   original_msg = message.content
   msg = message.content.upper()
+  
+  archive = client.get_guild(ARCHIVE_ID)
+  if message.channel.type == discord.ChannelType.text:
+    has_channel = False
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == str(message.channel):
+        has_channel = True
+        break
+    if not has_channel:
+      await archive.create_text_channel(str(message.channel),
+                    category= await archive.fetch_channel(1241894024105951263))
+    for archive_channel in archive.text_channels:
+      if archive_channel.name == message.channel.name:
+        await archive_channel.send(f"{message.author.name}: {message.content}\n")
+  elif message.channel.type == discord.ChannelType.private:
+    has_channel = False
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == message.author.name:
+        has_channel = True
+        break
+    if not has_channel:
+      await archive.create_text_channel(message.author.name,
+                    category=await archive.fetch_channel(1241893920896450662))
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == message.author.name:
+        await archive_channel.send(f"{message.author.name}: {message.content}")
       
   if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
     await message.channel.send(random.choice(printer.greetings_back))
@@ -247,7 +273,7 @@ async def on_message(message):
       command.pop()
       command.pop()
     char = find_char(id)
-    if command[0] == 'REGISTER' or command[0] == 'HELP':
+    if command[0] in ['REGISTER', 'HELP', 'DM']:
       char = True
     if char:
       match command[0]:
@@ -565,6 +591,13 @@ async def on_message(message):
             if key in db:
               printable = db[key]
               await message.channel.send(printable)
+
+        case 'DM':
+          if len(command) > 1:
+            user = await client.fetch_user(int(id))
+            original_command.pop(0)
+            printable = " ".join(original_command)
+            await user.send(content=printable)
             
             
     else:
