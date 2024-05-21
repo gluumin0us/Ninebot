@@ -149,6 +149,11 @@ def modaff(char: Character, action: str, aff):
       aff[1] = printRoman(aff[1])
       for i in range(len(aff[2])):
         aff[2][i] = stat_to_int[aff[2][i]]
+      for i in range(len(char.aff)):
+        if aff[0] == char.aff[i][0]:
+          char.aff[i] = aff
+          printable += f"Affliction modified!\n**{aff[0]} {aff[1]}**"
+          return printable
       char.aff.append(aff)
       printable += f"Affliction added!\n**{aff[0]} {aff[1]}**"
     case 'RM':

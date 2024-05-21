@@ -116,6 +116,9 @@ async def save_char(char: Character):
       print("Message updated!")
     except:
       pass
+
+async def wrong_command(channel):
+  await channel.send("I'm not sure if I understand your command...")
       
 def check_csh(msg: str):
   if msg.startswith("__"):
@@ -208,7 +211,8 @@ async def on_message(message):
   requester = (message.author.display_name, str(message.author.display_avatar))
   original_msg = message.content
   msg = message.content.upper()
-  
+
+  # Saves the message in an archive server.
   archive = client.get_guild(ARCHIVE_ID)
   if message.channel.type == discord.ChannelType.text:
     has_channel = False
@@ -234,7 +238,8 @@ async def on_message(message):
     for archive_channel in archive.text_channels:
       if str(archive_channel) == message.author.name:
         await archive_channel.send(f"{message.author.name}: {message.content}")
-      
+
+  # Natural language responses.
   if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
     await message.channel.send(random.choice(printer.greetings_back))
 
@@ -284,14 +289,15 @@ async def on_message(message):
       
         # Prints out helpful information
         case 'HELP':
-          await message.delete()
           printable = ""
           if len(command) == 1:
             printable = printer.printhelp("MAIN", requester)
-            await message.author.send(embed=printable)
+            await message.channel.send(embed=printable)
           elif len(command) == 2:
             printable = printer.printhelp(command[1], requester)
-            await message.author.send(embed=printable)
+            await message.channel.send(embed=printable)
+          else:
+            await wrong_command(message.channel)
         
         # Tells a joke
         case 'JOKE':
@@ -309,6 +315,8 @@ async def on_message(message):
           if len(command) == 1:
             printable = "\n".join(printer.printchar(char))
             await message.channel.send(printable)
+          else:
+            await wrong_command(message.channel)
 
         # Prints out, or modifies HP
         case 'HP':
@@ -322,6 +330,8 @@ async def on_message(message):
             printable = modify.modhp(char, hp_change)
             await save_char(char)
             await message.reply(printable)
+          else:
+            await wrong_command(message.channel)
             
         # Prints out, or modifies THP
         case 'THP':
@@ -613,6 +623,10 @@ async def on_message(message):
                 f"{spells.spell_name[i]}!\n\"{spells.spell_incantation[i]}\""
                 break
             await message.channel.send(printable)
+
+        case _:
+          await wrong_command(message.channel)
+          
             
             
     else:

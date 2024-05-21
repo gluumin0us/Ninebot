@@ -166,7 +166,9 @@ def printhelp(cmd: str, requester):
         "__**9..register**__\t"\
         "  Registers yourself a character if you don't have one.\n"\
         "__**9..tick**__\t"\
-        "  Advances any persistent effects such as bleeding.\n",
+        "  Advances any persistent effects such as bleeding.\n"\
+        "__**9..rep**__\t"\
+        "  Prints out, or modifies, your rep count.\n",
         inline=False)
 
       return embed
@@ -265,7 +267,10 @@ def printhelp(cmd: str, requester):
     case "LEVEL":
       embed = discord.Embed(title="9..level",
       description="This command will show you your current level "\
-                  "as well as your xp. It's a pretty simple command.",
+                  "as well as your xp if you run it without arguments.\n\n"\
+                  "If you run the command as `9..level set <number>`, it'll "\
+                  "set your level to that number with no extra xp.\n"\
+                  "e.g.  `9..level set 5` will make you level 5 with 0 xp.\n",
       colour=0xff6600)
     
       embed.set_author(name=req_name, icon_url=req_avatar)
@@ -364,6 +369,15 @@ def printhelp(cmd: str, requester):
 
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
+
+    case "rep":
+    embed = discord.Embed(title="9..rep",
+    description="This command will show you how much rep you currently have "\
+                "if you run it without arguments.\n\n"\
+                "If you run the command with a number, your rep will be "\
+                "modified by that number.\n"\
+                "e.g.  `9..rep +8` will make you gain 8 rep.\n",
+    colour=0xff6600)
 
 def printleg(char: Character):
   printable = f"{char.name}'s Legendary bonuses: \n"
