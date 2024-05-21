@@ -115,7 +115,7 @@ def printroll(char: Character, base: int, stat: str):
 
   else:
     printable = "I don't think you're quite using the command correctly. "\
-    "Refer to 9..help roll for more details."
+    "Refer to `9..help roll` for more details."
     return printable
     
   printable += f"Check: **-{result}+** :game_die:\n"

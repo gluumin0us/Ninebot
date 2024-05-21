@@ -118,7 +118,8 @@ async def save_char(char: Character):
       pass
 
 async def wrong_command(channel):
-  await channel.send("I'm not sure if I understand your command...")
+  await channel.send("I'm not sure if I understand your command. "\
+                    "Check `9..help` for more information.")
       
 def check_csh(msg: str):
   if msg.startswith("__"):
@@ -379,10 +380,15 @@ async def on_message(message):
             await message.reply(f"XP - {char.xp}/{240 * char.level - 100}", 
                                mention_author=False)
           elif len(command) == 2:
-            xp_change = int(command[1])
-            printable = modify.modxp(char, xp_change)
-            await save_char(char)
-            await message.reply(printable, mention_author=False)
+            try:
+              xp_change = int(command[1])
+              printable = modify.modxp(char, xp_change)
+              await save_char(char)
+              await message.reply(printable, mention_author=False)
+            except:
+              await wrong_command(message.channel)
+          else:
+            await wrong_command(message.channel)
 
         # Prints out current level and XP
         case 'LEVEL': 
