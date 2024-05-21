@@ -324,37 +324,42 @@ async def on_message(message):
             printable = ""
             if char.thp > 0:
               printable += f"THP - {char.thp}\n"
-            await message.reply(printable + f"HP - {char.hp} / {char.max_hp}")
+            await message.reply(printable + f"HP - {char.hp} / {char.max_hp}", 
+                               mention_author=False)
           elif len(command) == 2:
             hp_change = 500 if command[1] == "FULL" else int(command[1])
             printable = modify.modhp(char, hp_change)
             await save_char(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
           else:
             await wrong_command(message.channel)
             
         # Prints out, or modifies THP
         case 'THP':
           if len(command) == 1:
-            await message.reply(f"THP - {char.thp}")
+            await message.reply(f"THP - {char.thp}", mention_author=False)
           elif len(command) == 2:
             old_thp = char.thp
             char.thp += int(command[1])
             if char.thp < 0:
               char.thp = 0
             await save_char(char)
-            await message.reply(f"THP - {old_thp} -> **{char.thp}**")
+            await message.reply(f"THP - {old_thp} -> **{char.thp}**", 
+                               mention_author=False)
+          else:
+            await wrong_command(message.channel)
 
         # Rolls a d20, and optionally adds stats
         case 'ROLL':
           result = random.randint(1, 20)
           if len(command) == 1:
-            await message.reply (f"Rolling a d20... **-{result}-**")
+            await message.reply (f"Rolling a d20... **-{result}-**", 
+                                mention_author=False)
             if result == 20:
               await message.channel.send("**Natural 20!**")
           elif len(command) == 2:
             printable = printer.printroll(char, result, command[1])
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
             if result == 20:
               legendary = random.randint(1, 10)
               await message.channel.send("Rolling for legendaries...")
@@ -365,22 +370,26 @@ async def on_message(message):
                 await message.channel.send("**10!**\n **LEGENDARY!!!**")
               else:
                 await message.channel.send(f"{legendary}\nBetter luck next time!")
+          else:
+            await wrong_command(message.channel)
 
         # Prints out, or modifies XP
         case 'XP':
           if len(command) == 1:
-            await message.reply(f"XP - {char.xp}/{240 * char.level - 100}")
+            await message.reply(f"XP - {char.xp}/{240 * char.level - 100}", 
+                               mention_author=False)
           elif len(command) == 2:
             xp_change = int(command[1])
             printable = modify.modxp(char, xp_change)
             await save_char(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
 
         # Prints out current level and XP
         case 'LEVEL': 
           if len(command) == 1:
             await message.reply(f"Level - LV{char.level}, "
-                                       f"{char.xp}/{240 * char.level - 100}")
+                                f"{char.xp}/{240 * char.level - 100}",
+                                mention_author=False)
           if len(command) == 3 and command[1] == "SET":
             printable = f"Level - LV{char.level} -> **LV{command[2]}**, "\
             f"{char.xp}/{240*char.level-100} -> **0/{240*int(command[2])-100}**"
@@ -391,17 +400,17 @@ async def on_message(message):
             if old_level != char.level:
               char.hp = char.max_hp
             await save_char(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
 
         # Prints out, or modifies legendary bonuses
         case 'LEGEND':
           if len(command) == 1:
             printable = printer.printleg(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
           elif len(command) == 3:
             printable = modify.modleg(char, command[1], int(command[2]))
             await save_char(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
 
         # Prints out, adds, or removes talismans
         case 'TAL':
@@ -438,7 +447,7 @@ async def on_message(message):
             elif action == 'RM':
               printable = modify.modtal(char, action, int(command[2]))
             await save_char(char)
-            await message.reply(printable)
+            await message.reply(printable, mention_author=False)
 
         # Prints out, adds, or removes afflictions
         case 'AFF':

@@ -1,8 +1,12 @@
 from character import Character
 import discord
+import re
+from random import randint
 
-num_to_stat = ["Strength", "Dexterity", "Charisma", 
+int_to_stat = ["Strength", "Dexterity", "Charisma", 
    "Intelligence", "Attack", "Willpower", "Luck"]
+stat_to_int = {"STR": 0, "DEX": 1, "CHA": 2, "INT": 3, 
+   "ATT": 4, "WILL": 5, "LUCK": 6}
 
 def printRoman(number):
   num = [1, 4, 5, 9, 10, 40, 50, 90,
@@ -65,7 +69,7 @@ def printchar(char: Character):
       debuff_mark[aff[2][i]] += aff[3][i]
       
   for i in range(7):
-    printable_stat = f"{leg_mark[i]}{num_to_stat[i]} - "\
+    printable_stat = f"{leg_mark[i]}{int_to_stat[i]} - "\
                      f"{char.stat[i]} {tal_mark[i]} "
     if debuff_mark[i] != 0:
       printable_stat += f"({str(debuff_mark[i])})"
@@ -84,32 +88,36 @@ def printroll(char: Character, base: int, stat: str):
   # Returns a string that prints out the results of a stat roll
   printable = ":game_die:  "
   result = base
-  if stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
+
+  if re.search("^[0-9]+D[0-9]+$", stat):
+    nums = re.split("D", stat)
+    nums[0] = int(nums[0])
+    nums[1] = int(nums[1])
+    num_total = 0
+    printable = f"Rolling {stat}... \n["
+    for i in range(nums[0]):
+      temp_result = randint(1, nums[1])
+      if i != 0:
+        printable += ", "
+      printable += str(temp_result)
+      num_total += temp_result
+    printable += f"] = **{num_total}**\n"
+    return printable
+    
+  elif stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
     result += int(stat)
-    printable = f"{stat} Custom "
+    printable += f"{stat} Custom "
+
+  elif stat in stat_to_int:
+    int_stat = stat_to_int[stat]
+    result += char.stat[int_stat]
+    printable += f"{int_to_stat[int_stat]} "
+
   else:
-    match stat:
-      case "STR":
-        result += char.stat[0]
-        printable += "Strength "
-      case "DEX":
-        result += char.stat[1]
-        printable += "Dexterity "
-      case "CHA":
-        result += char.stat[2]
-        printable += "Charisma "
-      case "INT":
-        result += char.stat[3]
-        printable += "Intelligence "
-      case "ATT":
-        result += char.stat[4]
-        printable += "Attack "
-      case "WILL":
-        result += char.stat[5]
-        printable += "Willpower "
-      case "LUCK":
-        result += char.stat[6]
-        printable += "Luck "
+    printable = "I don't think you're quite using the command correctly. "\
+    "Refer to 9..help roll for more details."
+    return printable
+    
   printable += f"Check: **-{result}+** :game_die:\n"
 
   if base == 1:
@@ -363,21 +371,34 @@ def printhelp(cmd: str, requester):
     case "TICK":
       embed = discord.Embed(title="9..tick",
         description="This command will tick forward any persistent "\
-                  "tickable effects by one round. Right now, the only "\
-                  "such effect is bleeding, but there may be more in the future.\n",
+                    "tickable effects by one round. Right now, the only "\
+                    "such effect is bleeding, "\
+                    "but there may be more in the future.\n",
         colour=0xff6600)
 
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
 
-    case "rep":
-    embed = discord.Embed(title="9..rep",
-    description="This command will show you how much rep you currently have "\
-                "if you run it without arguments.\n\n"\
-                "If you run the command with a number, your rep will be "\
-                "modified by that number.\n"\
-                "e.g.  `9..rep +8` will make you gain 8 rep.\n",
-    colour=0xff6600)
+    case "REP":
+      embed = discord.Embed(title="9..rep",
+        description="This command will show you how much rep you currently have "\
+                  "if you run it without arguments.\n\n"\
+                  "If you run the command with a number, your rep will be "\
+                  "modified by that number.\n"\
+                  "e.g.  `9..rep +8` will make you gain 8 rep.\n",
+        colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case _:
+      embed = discord.Embed(title="Command not found",
+        description=f"I don't recognize 9..{cmd.lower()} as one of my commands...",
+        colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+      
 
 def printleg(char: Character):
   printable = f"{char.name}'s Legendary bonuses: \n"
@@ -401,7 +422,7 @@ def printtal(char: Character):
     for i in range(len(cur_tal[2])):
       if cur_tal[2][i] > 0:
         printable += '+'
-      printable += f"{cur_tal[2][i]} {num_to_stat[cur_tal[1][i]]}\t"
+      printable += f"{cur_tal[2][i]} {int_to_stat[cur_tal[1][i]]}\t"
     printable += "\n"
     if cur_tal[3] != "":
       printable += f"*{cur_tal[3]}*\n"
@@ -418,7 +439,7 @@ def printaff(char: Character):
     cur_aff = char.aff[i]
     printable += f"**{cur_aff[0]} {cur_aff[1]}**\n"
     for i in range(len(cur_aff[2])):
-      printable += f"{cur_aff[3][i]} {num_to_stat[cur_aff[2][i]]}\t"
+      printable += f"{cur_aff[3][i]} {int_to_stat[cur_aff[2][i]]}\t"
     if len(cur_aff[2]) != 0:
       printable += "\n"
     if cur_aff[4] != "":

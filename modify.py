@@ -55,6 +55,9 @@ def modhp(char: Character, hp_change: int):
 xp_total = [0, 140, 520, 1140, 2000, 3100, 4440, 6020, 7840, 9900]
 
 def modxp(char: Character, xp_change: int):
+  if not isinstance(xp_change, int):
+    return "You're using the command incorrectly - "\
+    "check `9..help xp` for more details."
   printable = ""
   old_level = char.level
   old_xp = char.xp
@@ -122,8 +125,11 @@ def modleg(char: Character, stat: str, leg_change: int):
       char.legendary[6] += leg_change
       printable += f"Luck: +{old_luc} -> **+{char.legendary[6]}**"
 
-  restat(char)
+    case _:
+      printable += "I don't think you're quite using the command correctly. "
+      printable += "Refer to `9..help legend` for more details."
 
+  restat(char)
   return printable
 
 def modtal(char: Character, action: str, tal):
@@ -139,6 +145,10 @@ def modtal(char: Character, action: str, tal):
       removed_tal = char.tal.pop(tal - 1)
       printable += "Talisman removed!\n"\
       f"*TAL{tal} - {removed_tal[0]}*\n"
+    case _:
+      printable += "I don't think you're quite using the command correctly. "
+      printable += "Refer to `9..help tal` for more details."
+      
   restat(char)
   return printable
 
@@ -162,6 +172,10 @@ def modaff(char: Character, action: str, aff):
           removed_aff = char.aff.pop(i)
           printable += f"Affliction removed!\n**{removed_aff[0]} {removed_aff[1]}**"
           break
+      printable += f"I didn't find an affliction named {aff} to remove!\n"
+    case _:
+      printable += "I don't think you're quite using the command correctly. "
+      printable += "Refer to `9..help modaff` for more details."
   restat(char)
   return printable
 
