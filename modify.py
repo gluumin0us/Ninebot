@@ -136,18 +136,24 @@ def modtal(char: Character, action: str, tal):
   printable = ""
   match action:
     case 'ADD':
-      for i in range(len(tal[1])):
-        tal[1][i] = stat_to_int[tal[1][i]]
-      char.tal.append(tal)
-      printable += "Talisman added!\n"\
-      f"*TAL{len(char.tal)} - {tal[0]}*\n"
+      try:
+        for i in range(len(tal[1])):
+          tal[1][i] = stat_to_int[tal[1][i]]
+        char.tal.append(tal)
+        printable += "Talisman added!\n"\
+        f"*TAL{len(char.tal)} - {tal[0]}*\n"
+      except:
+        printable += "Something went wrong. Did you type everything correctly?\n"
     case 'RM':
-      removed_tal = char.tal.pop(tal - 1)
-      printable += "Talisman removed!\n"\
-      f"*TAL{tal} - {removed_tal[0]}*\n"
+      try:
+        removed_tal = char.tal.pop(tal - 1)
+        printable += "Talisman removed!\n"\
+        f"*TAL{tal} - {removed_tal[0]}*\n"
+      except:
+        printable += f"Failed to remove TAL{tal}. Are you sure it exists?\n"
     case _:
       printable += "I don't think you're quite using the command correctly. "
-      printable += "Refer to `9..help tal` for more details."
+      printable += "Refer to `9..help tal` for more details.\n"
       
   restat(char)
   return printable

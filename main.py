@@ -414,9 +414,14 @@ async def on_message(message):
             printable = printer.printleg(char)
             await message.reply(printable, mention_author=False)
           elif len(command) == 3:
-            printable = modify.modleg(char, command[1], int(command[2]))
-            await save_char(char)
-            await message.reply(printable, mention_author=False)
+            try:
+              printable = modify.modleg(char, command[1], int(command[2]))
+              await save_char(char)
+              await message.reply(printable, mention_author=False)
+            except:
+              await wrong_command(message.channel)
+          else:
+            await wrong_command(message.channel)
 
         # Prints out, adds, or removes talismans
         case 'TAL':
@@ -426,32 +431,43 @@ async def on_message(message):
           else:
             action = command[1]
             if action == 'ADD':
-              action = command[1]
-              # handing multi-word names
-              tal_name = original_command.pop(2)
-              while original_command[2].upper() not in modify.stat_to_int:
-                tal_name += f" {original_command.pop(2)}"
-
-              # handing description
-              tal_desc = ""
-              for i in range(4, len(original_command)):
-                if original_command[i].upper() not in modify.stat_to_int and \
-                not original_command[i].startswith('+') and \
-                not original_command[i].startswith('-'):
-                  tal_desc += f"{original_command[i]} "
-
-              tal_stat = []
-              tal_mod = []
-              for i in range(len(command)):
-                if command[i] in modify.stat_to_int:
-                  tal_stat.append(command[i])
-                  tal_mod.append(int(command[i+1]))
-              
-              tal = [tal_name, tal_stat, tal_mod, tal_desc]
-
-              printable = modify.modtal(char, action, tal)
+              try:
+                action = command[1]
+                # handing multi-word names
+                tal_name = original_command.pop(2)
+                while original_command[2].upper() not in modify.stat_to_int:
+                  tal_name += f" {original_command.pop(2)}"
+  
+                # handing description
+                tal_desc = ""
+                for i in range(4, len(original_command)):
+                  if original_command[i].upper() not in modify.stat_to_int and \
+                  not original_command[i].startswith('+') and \
+                  not original_command[i].startswith('-'):
+                    tal_desc += f"{original_command[i]} "
+  
+                tal_stat = []
+                tal_mod = []
+                for i in range(len(command)):
+                  if command[i] in modify.stat_to_int:
+                    tal_stat.append(command[i])
+                    tal_mod.append(int(command[i+1]))
+                
+                tal = [tal_name, tal_stat, tal_mod, tal_desc]
+  
+                printable = modify.modtal(char, action, tal)
+              except:
+                await wrong_command(message.channel)
+                return
             elif action == 'RM':
-              printable = modify.modtal(char, action, int(command[2]))
+              try:
+                printable = modify.modtal(char, action, int(command[2]))
+              except:
+                await wrong_command(message.channel)
+                return
+            else:
+              await wrong_command(message.channel)
+              return
             await save_char(char)
             await message.reply(printable, mention_author=False)
 
@@ -463,33 +479,45 @@ async def on_message(message):
           else:
             action = command[1]
             if action == 'ADD':
-              aff_name = command[2]
-              aff_tier = 0
-              if command[3].isdigit():
-                aff_tier = int(command.pop(3))
-                original_command.pop(3)
-              
-              i = 0;
-              aff_stat = []
-              aff_mod = []
-              if len(command) > 3:
-                while command[3] in modify.stat_to_int:
-                  aff_stat.append(command.pop(3))
-                  aff_mod.append(int(command.pop(3)))
-                  original_command.pop(i)
-                  original_command.pop(i)
-                  if len(command) < 4:
-                    break
-                  
-              aff_desc = ""
-              for i in range(3, len(original_command)):
-                aff_desc += f"{original_command[i]} "
-
-              aff = [aff_name, aff_tier, aff_stat, aff_mod, aff_desc]
-              printable = modify.modaff(char, action, aff)
+              try:
+                aff_name = command[2]
+                aff_tier = 0
+                if command[3].isdigit():
+                  aff_tier = int(command.pop(3))
+                  original_command.pop(3)
+                
+                i = 0;
+                aff_stat = []
+                aff_mod = []
+                if len(command) > 3:
+                  while command[3] in modify.stat_to_int:
+                    aff_stat.append(command.pop(3))
+                    aff_mod.append(int(command.pop(3)))
+                    original_command.pop(i)
+                    original_command.pop(i)
+                    if len(command) < 4:
+                      break
+                    
+                aff_desc = ""
+                for i in range(3, len(original_command)):
+                  aff_desc += f"{original_command[i]} "
+  
+                aff = [aff_name, aff_tier, aff_stat, aff_mod, aff_desc]
+                printable = modify.modaff(char, action, aff)
+              except:
+                await wrong_message(message.channel)
+                return
               
             elif action == 'RM':
-              printable = modify.modaff(char, action, command[2])
+              try:
+                printable = modify.modaff(char, action, command[2])
+              except:
+                await wrong_message(message.channel)
+                return
+
+            else:
+              await wrong_message(message.channel)
+              return
             await save_char(char)
             await message.channel.send(printable)
 
