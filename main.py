@@ -281,12 +281,17 @@ async def on_message(message):
       print("What's your command?")
     command = command.split()
     if len(command) > 1 and command[-2] == '-T':
-      try:
-        id = db["name2id"][command[-1]]
-      except:
+      name2id = db['name2id']
+      found_name = False
+      for name in name2id:
+        if name.startswith(command[-1]):
+          id = name2id[name]
+          found_name = True
+      command.pop()
+      command.pop()
+      if not found_name:
         await message.channel.send("Error: target name not found.\n")
-      command.pop()
-      command.pop()
+        return
     char = find_char(id)
     if command[0] in ['REGISTER', 'HELP', 'DM']:
       char = True
