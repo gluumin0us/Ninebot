@@ -419,11 +419,12 @@ def printtal(char: Character):
   for i in range(len(char.tal)):
     cur_tal = char.tal[i]
     printable += f"**TAL{i+1} - {cur_tal[0]}**\n"
-    for i in range(len(cur_tal[2])):
-      if cur_tal[2][i] > 0:
-        printable += '+'
-      printable += f"{cur_tal[2][i]} {int_to_stat[cur_tal[1][i]]}\t"
-    printable += "\n"
+    if len(cur_tal[2]) > 0:
+      for i in range(len(cur_tal[2])):
+        if cur_tal[2][i] > 0:
+          printable += '+'
+        printable += f"{cur_tal[2][i]} {int_to_stat[cur_tal[1][i]]}\t"
+      printable += "\n"
     if cur_tal[3] != "":
       printable += f"*{cur_tal[3]}*\n"
     printable += "\n"

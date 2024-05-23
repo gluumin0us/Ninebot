@@ -113,7 +113,6 @@ async def save_char(char: Character):
       printable = ":link: "
       printable += "\n".join(printer.printchar(char))
       await message_to_edit.edit(content=printable)
-      print("Message updated!")
     except:
       pass
 
@@ -438,26 +437,34 @@ async def on_message(message):
             action = command[1]
             if action == 'ADD':
               try:
-                action = command[1]
+                tal_desc = ""
+                if '\n' in message.content:
+                  tal_desc = message.content.split('\n')[1]
                 # handing multi-word names
                 tal_name = original_command.pop(2)
-                while original_command[2].upper() not in modify.stat_to_int:
+                command.pop(2)
+                while (len(original_command) >= 3 and 
+                       original_command[2].upper() not in modify.stat_to_int and 
+                      not tal_desc.startswith(original_command[2])):
                   tal_name += f" {original_command.pop(2)}"
-  
-                # handing description
-                tal_desc = ""
-                for i in range(4, len(original_command)):
-                  if original_command[i].upper() not in modify.stat_to_int and \
-                  not original_command[i].startswith('+') and \
-                  not original_command[i].startswith('-'):
-                    tal_desc += f"{original_command[i]} "
-  
+                  command.pop(2)
+
+                # handling stat modifications
                 tal_stat = []
                 tal_mod = []
                 for i in range(len(command)):
                   if command[i] in modify.stat_to_int:
+                    print(command[i], command[i+1])
                     tal_stat.append(command[i])
                     tal_mod.append(int(command[i+1]))
+  
+                # handing description
+                # tal_desc = ""
+                # for i in range(2, len(original_command)):
+                #   if original_command[i].upper() not in modify.stat_to_int and \
+                #   not original_command[i].startswith('+') and \
+                #   not original_command[i].startswith('-'):
+                #     tal_desc += f"{original_command[i]} "
                 
                 tal = [tal_name, tal_stat, tal_mod, tal_desc]
   
