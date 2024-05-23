@@ -129,6 +129,9 @@ def check_csh(msg: str):
       return db['name2id'][msg]
   return False
 
+def is_me(msg):
+  return msg.author == client.user
+
 # RUN ONE TIME COMMANDS HERE
 
 
@@ -201,6 +204,9 @@ async def on_raw_reaction_add(payload):
               await msg.edit(content=msg_content)
               break
           await msg.remove_reaction(payload.emoji, payload.member)
+
+    case 'MiscCross':
+      await msg.delete()
       
 
 @client.event
@@ -519,7 +525,7 @@ async def on_message(message):
               await wrong_message(message.channel)
               return
             await save_char(char)
-            await message.channel.send(printable)
+            await message.reply(printable, mention_author=False)
 
         # Registers a new character if one does not exist
         case 'REGISTER':
@@ -536,8 +542,12 @@ async def on_message(message):
             db["name2id"][new_name] = id
             db[id] = char_to_list(new_char)
             char_cache[id] = new_char
-            await message.channel.send("New character registered!\n"\
-              f"Welcome to the Magic Casino, {new_name.capitalize()}!")
+            await message.reply("New character registered!\n"\
+              f"Welcome to the Magic Casino, {new_name.capitalize()}!", 
+                               mention_author=False)
+          elif len(command) > 2:
+            command = command.pop(0)
+            new_char = modify.makechar(command)
 
         # Unregisters an existing character.
         case 'UNREGISTER':
@@ -594,7 +604,7 @@ async def on_message(message):
             char.rep = int(command[2])
             printable += f"**{char.rep}**\n"
             await save_char(char)
-          await message.channel.send(printable)
+          await message.reply(printable, mention_author=False)
 
         # Makes, or resets linked CSHs for all characters.
         case 'ALL-LEVELS':
@@ -666,6 +676,17 @@ async def on_message(message):
                 f"{spells.spell_name[i]}!\n\"{spells.spell_incantation[i]}\""
                 break
             await message.channel.send(printable)
+
+        case 'PURGE':
+          if len(command) == 1:
+            await message.reply("How many messages would you like to purge?\n", 
+                         mention_author=False)
+          elif len(command) == 2:
+            try:
+              limit = int(command[1])
+              await message.channel.purge(limit=limit, check=is_me, bulk=False)
+            except:
+              await wrong_command(message.channel)
 
         case _:
           await wrong_command(message.channel)

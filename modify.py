@@ -1,5 +1,6 @@
 from character import Character
 from printer import printRoman
+import re
 
 int_to_stat = ["Strength", "Dexterity", "Charisma", 
                "Intelligence", "Attack", "Willpower", "Luck"]
@@ -20,7 +21,7 @@ def restat(char: Character):
       char.stat[i[2][j]] += i[3][j]
   char.max_hp = 40 + char.level * 5
 
-def modhp(char: Character, hp_change: int):
+def modhp(char: Character, hp_change: int) -> str:
   printable = ""
   thp_blocked = False
   if char.thp > 0 and hp_change < 0:
@@ -54,7 +55,7 @@ def modhp(char: Character, hp_change: int):
 
 xp_total = [0, 140, 520, 1140, 2000, 3100, 4440, 6020, 7840, 9900]
 
-def modxp(char: Character, xp_change: int):
+def modxp(char: Character, xp_change: int) -> str:
   if not isinstance(xp_change, int):
     return "You're using the command incorrectly - "\
     "check `9..help xp` for more details."
@@ -87,7 +88,7 @@ def modxp(char: Character, xp_change: int):
     printable += f"**LV{char.level}, MAX LEVEL**\n"
   return printable
 
-def modleg(char: Character, stat: str, leg_change: int):
+def modleg(char: Character, stat: str, leg_change: int) -> str:
   printable = ""
   match stat:
     case 'STR':
@@ -132,7 +133,7 @@ def modleg(char: Character, stat: str, leg_change: int):
   restat(char)
   return printable
 
-def modtal(char: Character, action: str, tal):
+def modtal(char: Character, action: str, tal) -> str:
   printable = ""
   match action:
     case 'ADD':
@@ -158,7 +159,7 @@ def modtal(char: Character, action: str, tal):
   restat(char)
   return printable
 
-def modaff(char: Character, action: str, aff):
+def modaff(char: Character, action: str, aff) -> str:
   printable = ""
   match action:
     case 'ADD':
@@ -185,7 +186,7 @@ def modaff(char: Character, action: str, aff):
   restat(char)
   return printable
 
-def tick(char: Character):
+def tick(char: Character) -> str:
   printable = ""
   bleed_counter = {
     'I': -3,
@@ -203,4 +204,11 @@ def tick(char: Character):
   if printable == "":
     printable += "No tickable persistent effects found."
   return printable
+
+def makechar(csh: list[str]) -> Character:
+  if csh[0].search(":$"):
+    char_name = csh[0].split(":", 1)[0]
+    char_level = csh[2].split(",", 1)[0]
+    char_xp = csh[3].split("/", 1)[0]
+  pass
       
