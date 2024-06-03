@@ -1,6 +1,7 @@
 from character import Character
 from printer import printRoman
 import re
+import math
 
 int_to_stat = ["Strength", "Dexterity", "Charisma", 
                "Intelligence", "Attack", "Willpower", "Luck"]
@@ -24,6 +25,7 @@ def restat(char: Character):
 def modhp(char: Character, hp_change: int) -> str:
   printable = ""
   thp_blocked = False
+  old_thp = 0
   if char.thp > 0 and hp_change < 0:
     old_thp = char.thp
     if char.thp < -hp_change:
@@ -32,8 +34,22 @@ def modhp(char: Character, hp_change: int) -> str:
       printable += f"THP - {old_thp} -> **0**\n"
     elif char.thp >= -hp_change:
       char.thp += hp_change
-      printable += f"THP - {old_thp} -> **{char.thp}**"
+      printable += f"THP - {old_thp} -> **{char.thp}**\n"
       thp_blocked = True
+  if thp_blocked:
+    hp_percent = math.floor((char.hp / char.max_hp) * 16)
+    printable += "⧼"
+    for i in range(16):
+      if i < hp_percent:
+        printable += "█"
+      else:
+        printable += "░"
+    printable += "⧽"
+    for i in range(math.ceil(char.thp / 10)):
+      printable += "❱"
+    printable += f"\n**{char.hp}/{char.max_hp}** "
+    if char.thp > 0:
+      printable += f"❰**{char.thp}**❱"
   if not thp_blocked:
     old_hp = char.hp
     char.hp += hp_change
@@ -41,7 +57,26 @@ def modhp(char: Character, hp_change: int) -> str:
       char.hp = char.max_hp
     elif char.hp < 0:
       char.hp = 0
-    printable += f"HP - {old_hp}/{char.max_hp} -> **{char.hp}/{char.max_hp}**\n"
+    hp_percent = math.floor((char.hp / char.max_hp) * 16)
+    old_hp_percent = math.floor((old_hp / char.max_hp) * 16)
+    printable += "⧼"
+    for i in range(16):
+      if i < hp_percent:
+        if i < old_hp_percent:
+          printable += "▓"
+        else:
+          printable += "█"
+      elif i < old_hp_percent:
+        printable += "▒"
+      else:
+        printable += "░"
+    printable += "⧽"
+    for i in range(math.ceil(char.thp / 10)):
+      printable += "❱"
+    printable += f"\n{old_hp}/{char.max_hp} "
+    if old_thp > 0:
+      printable += f"❬{old_thp}❭ "
+    printable += f"-> **{char.hp}/{char.max_hp}** "
     if char.hp == 0:
       printable += f"\n**{char.name.upper()} IS BLEEDING OUT.**"
     elif old_hp == 0:

@@ -2,6 +2,7 @@ from character import Character
 import discord
 import re
 from random import randint
+import math
 
 int_to_stat = ["Strength", "Dexterity", "Charisma", 
    "Intelligence", "Attack", "Willpower", "Luck"]
@@ -84,7 +85,7 @@ def printchar(char: Character):
   return printable
 
 
-def printroll(char: Character, base: int, stat: str):
+def printroll(char: Character, base: int, stat: str) -> str:
   # Returns a string that prints out the results of a stat roll
   printable = ":game_die:  "
   result = base
@@ -128,7 +129,7 @@ def printroll(char: Character, base: int, stat: str):
     
   return printable
 
-def printhelp(cmd: str, requester):
+def printhelp(cmd: str, requester) -> discord.Embed():
   req_name, req_avatar = requester
   match cmd: 
     case "MAIN":
@@ -251,7 +252,11 @@ def printhelp(cmd: str, requester):
                   "dexterity modifier added.\n\n" \
                   "You can also roll with a custom bonus "\
                   "by running the command with a number.\n" \
-                  "e.g. `9..roll +4` will return a d20 dice roll with +4 added.\n",
+                  "e.g. `9..roll +4` will return a d20 dice roll with +4 added.\n\n"\
+                  "If you want to roll dice other than a d20, "\
+                  "and/or if you want to roll multiple dice at once, just do "\
+                  "`9..roll <amount of dice to roll>d<type of dice to roll>`.\n"\
+                  "e.g. `9..roll 4d6` will roll 4 six-sided dice.\n",
       colour=0xff6600)
 
       embed.set_author(name=req_name, icon_url=req_avatar)
@@ -304,19 +309,22 @@ def printhelp(cmd: str, requester):
                   "stat modifications, and their descriptions if you "\
                   "run it without arguments.\n\n"\
                   "To add a talisman to your character, do the following:\n"\
-                  "`9..tal add <name> <the stat it modifies> "\
-                  "<how much it modifies the stat> <optional description>`\n"\
+                  "```9..tal add <name> <the stat it modifies> "\
+                  "<how much it modifies the stat> \n"\
+                  "<optional description (on a new line)>```\n"\
                   "e.g. `9..tal add Cloak of Shadows dex +1` "\
                   "will give you a talisman called Clock of Shadows that increases "\
                   "your dexterity by 1.\n\n"\
                   "Your talisman can also have multiple stat modifications.\n"\
-                  "e.g. `9..tal add Jeweled Necklace cha +1 luck +2 An enchanted "\
-                  "necklace made of gems and gold.` will give you a talisman that "\
+                  "e.g. ```9..tal add Jeweled Necklace cha +1 luck +2\n"\
+                  "An enchanted "\
+                  "necklace made of gems and gold.``` "\
+                  "will give you a talisman that "\
                   "enhances your charisma by 1 and your luck by 2, with a short "\
                   "description to boot.\n\n"
                   "To remove a talisman, do `9..tal rm <talisman number>`.\n"\
                   "e.g. `9..tal rm 1` will remove your TAL1.\n\n"\
-                  "tip: f you have a longer description, it's ok to put it "\
+                  "Note: Your talisman descriptions must be put "\
                   "on a separate line, like this: \n"\
                   "```\n9..tal add Solstice Heart str +2 will +4\n"\
                   "The parts of this artificial heart are forged out of pure "\
@@ -447,4 +455,27 @@ def printaff(char: Character):
       printable += f"*{cur_aff[4]}*\n"
     printable += "\n"
 
+  return printable
+
+def printcheck(checkbook: dict):
+  printable = ""
+  for name in checkbook:
+    printable += f"{name}: {checkbook[name]}\n"
+  return printable
+
+def printhp(char: Character):
+  printable = ""
+  hp_percent = math.floor((char.hp / char.max_hp) * 16)
+  printable += "⧼"
+  for i in range(16):
+    if i < hp_percent:
+      printable += "▓"
+    else:
+      printable += "░"
+  printable += "⧽"
+  for i in range(math.ceil(char.thp / 10)):
+    printable += "❱"
+  printable += f"\n{char.hp} / {char.max_hp}  "
+  if char.thp > 0:
+    printable += f"❬{char.thp}❭"
   return printable

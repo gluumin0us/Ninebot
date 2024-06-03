@@ -2,6 +2,7 @@ import os
 import random
 import requests
 from time import sleep
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -28,6 +29,8 @@ names = {
 admins = ["531288319859097601", "262320046653702145"]
 
 ARCHIVE_ID = 1241883869549170748
+
+CHECKBOOK_ID = (797199351515447296, 1245834122232860702)
 
 # my_char = Character("Simon", 1, 0)
 # my_char.legendary[3] += 1
@@ -116,6 +119,16 @@ async def save_char(char: Character):
     except:
       pass
 
+async def update_rep():
+  check_channel_id, check_msg_id = CHECKBOOK_ID
+  check_channel = client.get_channel(check_channel_id)
+  try:
+    check_message = check_channel.get_partial_message(check_msg_id)
+    printable = printer.printcheck(db['checkbook'])
+    await check_message.edit(content=printable)
+  except:
+    pass
+
 async def wrong_command(channel):
   await channel.send("I'm not sure if I understand your command. "\
                     "Check `9..help` for more information.")
@@ -145,8 +158,16 @@ client = discord.Client(intents=intents)
 
 @client.event
 async def on_ready():
-  print(f'We have logged in as {client.user}')
   await client.change_presence(activity=discord.Game('9..help'))
+
+  # one time on-start commands here:
+  # archive = client.get_guild(1241883869549170748)
+  # casino = client.get_guild(797104015304294401)
+  # for channel in casino.text_channels:
+  #   if channel.name == "lightning-shift":
+  #     pass
+  print(f'We have logged in as {client.user}')
+  
 
 
 @client.event
@@ -220,33 +241,38 @@ async def on_message(message):
 
   # Saves the message in an archive server.
   archive = client.get_guild(ARCHIVE_ID)
-  if message.channel.type == discord.ChannelType.text:
-    has_channel = False
-    for archive_channel in archive.text_channels:
-      if str(archive_channel) == str(message.channel):
-        has_channel = True
-        break
-    if not has_channel:
-      await archive.create_text_channel(str(message.channel),
-                    category= await archive.fetch_channel(1241894024105951263))
-    for archive_channel in archive.text_channels:
-      if archive_channel.name == message.channel.name:
-        await archive_channel.send(f"{message.author.name}: {message.content}\n")
-  elif message.channel.type == discord.ChannelType.private:
-    has_channel = False
-    for archive_channel in archive.text_channels:
-      if str(archive_channel) == message.author.name:
-        has_channel = True
-        break
-    if not has_channel:
-      await archive.create_text_channel(message.author.name,
-                    category=await archive.fetch_channel(1241893920896450662))
-    for archive_channel in archive.text_channels:
-      if str(archive_channel) == message.author.name:
-        await archive_channel.send(f"{message.author.name}: {message.content}")
+  if message.guild.id != 1241883869549170748:
+    if message.channel.type == discord.ChannelType.text:
+      has_channel = False
+      for archive_channel in archive.text_channels:
+        if str(archive_channel) == str(message.channel):
+          has_channel = True
+          break
+      if not has_channel:
+        await archive.create_text_channel(str(message.channel),
+                      category= await archive.fetch_channel(1241894024105951263))
+      for archive_channel in archive.text_channels:
+        if archive_channel.name == message.channel.name:
+          await archive_channel.send(f"{message.author.name}: {message.content}\n")
+          for attachment in message.attachments:
+            await archive_channel.send(attachment.url)
+    elif message.channel.type == discord.ChannelType.private:
+      has_channel = False
+      for archive_channel in archive.text_channels:
+        if str(archive_channel) == message.author.name:
+          has_channel = True
+          break
+      if not has_channel:
+        await archive.create_text_channel(message.author.name,
+                      category=await archive.fetch_channel(1241893920896450662))
+      for archive_channel in archive.text_channels:
+        if str(archive_channel) == message.author.name:
+          await archive_channel.send(f"{message.author.name}: {message.content}")
+          for attachment in message.attachments:
+            await archive_channel.send(attachment.url)
 
   # Natural language responses.
-  if msg.startswith('9..HELLO') or "HI NINE" in msg or "HELLO NINE" in msg:
+  if "HEY NINE" in msg or "HI NINE" in msg or "HELLO NINE" in msg:
     await message.channel.send(random.choice(printer.greetings_back))
 
   if ("I LOVE" in msg or "ILY" in msg) and "NINE" in msg:
@@ -268,6 +294,14 @@ async def on_message(message):
       sleep(2)
       await message.channel.send(json_data['delivery'])
 
+  if msg.startswith("**__WHERE EVERYONE IS__**"):
+    db["location_msg"] = original_msg
+
+  # Location tracking module
+  if len(message.channel_mentions) and message.reference:
+    reply_msg = await message.channel.fetch_message(message.reference.message_id)
+    reply_author_id = reply_msg.author.id
+    db['locations'][str(reply_author_id)] = message.channel_mentions[0].jump_url
 
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
@@ -287,6 +321,7 @@ async def on_message(message):
         if name.startswith(command[-1]):
           id = name2id[name]
           found_name = True
+          break
       command.pop()
       command.pop()
       if not found_name:
@@ -332,11 +367,8 @@ async def on_message(message):
         # Prints out, or modifies HP
         case 'HP':
           if len(command) == 1:
-            printable = ""
-            if char.thp > 0:
-              printable += f"THP - {char.thp}\n"
-            await message.reply(printable + f"HP - {char.hp} / {char.max_hp}", 
-                               mention_author=False)
+            printable = printer.printhp(char)
+            await message.reply(printable, mention_author=False)
           elif len(command) == 2:
             hp_change = 500 if command[1] == "FULL" else int(command[1])
             printable = modify.modhp(char, hp_change)
@@ -462,14 +494,6 @@ async def on_message(message):
                     print(command[i], command[i+1])
                     tal_stat.append(command[i])
                     tal_mod.append(int(command[i+1]))
-  
-                # handing description
-                # tal_desc = ""
-                # for i in range(2, len(original_command)):
-                #   if original_command[i].upper() not in modify.stat_to_int and \
-                #   not original_command[i].startswith('+') and \
-                #   not original_command[i].startswith('-'):
-                #     tal_desc += f"{original_command[i]} "
                 
                 tal = [tal_name, tal_stat, tal_mod, tal_desc]
   
@@ -543,15 +567,23 @@ async def on_message(message):
         case 'REGISTER':
           if id in db:
             await message.channel.send("You already have a character!")
+            return
           elif len(command) == 1:
             await message.channel.send("You need to input a name!\n "\
             "e.g. 9..register Felix")
+            return
           elif len(command) == 2:
             new_name = command[1]
+            if new_name in db["name2id"]:
+              await message.channel.send(f"Name \"{new_name}\" already taken!\n")
+              return
             new_char = Character(new_name.capitalize(), 1, 0)
             new_char.id = id
             modify.restat(new_char)
             db["name2id"][new_name] = id
+            db["id2name"][id] = new_name
+            db["checkbook"][new_name] = 13
+            await update_rep()
             db[id] = char_to_list(new_char)
             char_cache[id] = new_char
             await message.reply("New character registered!\n"\
@@ -601,21 +633,28 @@ async def on_message(message):
         # Prints out, or modifies reputation.
         case 'REP':
           if len(command) == 1:
-            printable = f"Current Rep for {char.name}: {char.rep}\n"
-            if char.rep <= 0:
-              printable += "**DEADBEAT**"
+            try:
+              printable = f"Current Rep for {char.name}: "\
+              f"{db['checkbook'][char.name]}\n"
+              if char.rep <= 0:
+                printable += "**DEADBEAT**"
+            except:
+              return
           elif len(command) == 2:
-            printable = f"Rep for {char.name}: {char.rep} -> "
-            char.rep += int(command[1])
-            printable += f"**{char.rep}**\n"
-            if char.rep <= 0:
+            printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
+            db['checkbook'][char.name] += int(command[1])
+            printable += f"**{db['checkbook'][char.name]}**\n"
+            if db['checkbook'][char.name] <= 0:
               printable += "**DEADBEAT**"
-            await save_char(char)
+            await update_rep()
+              
           elif len(command) == 3 and command[1] == 'SET':
-            printable = f"Rep for {char.name}: {char.rep} -> "
-            char.rep = int(command[2])
-            printable += f"**{char.rep}**\n"
-            await save_char(char)
+            printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
+            db['checkbook'][char.name] = int(command[2])
+            printable += f"**{db['checkbook'][char.name]}**\n"
+            if db['checkbook'][char.name] <= 0:
+              printable += "**DEADBEAT**"
+            await update_rep()
           await message.reply(printable, mention_author=False)
 
         # Makes, or resets linked CSHs for all characters.
@@ -700,6 +739,73 @@ async def on_message(message):
             except:
               await wrong_command(message.channel)
 
+        case 'LOCATION':
+          await message.channel.send(db['location_msg'])
+
+        case 'CLONE_SERVER':
+          print("Entered clone_server case.\n")
+          clone = client.get_guild(1244818345157726349)
+          casino = client.get_guild(797104015304294401)
+          for cat in casino.categories:
+            if cat.id == 927012133143728179 or cat.id == 797194987288002620:
+              continue
+
+            if cat.name == "Training Scaffolds":
+              continue
+            if cat.name == "Hegemopolis":
+              continue
+            if cat.name == "Stone Dungeon":
+              continue
+            if cat.name == "The Hub":
+              continue
+            if cat.name == "Upper Platforms":
+              continue
+            if cat.name in ["Family Camps", "Red Hell", "The Ranch", "Marcel Base", 
+                           "The Snake Pit", "Snace Lodging"]:
+              continue
+            if cat.name == "The Islands":
+              for channel in cat.channels:
+                if channel.name == "island-6":
+                  cchannel = await clone.create_text_channel(channel.name)
+                  cur_date = (2020, 1, 1)
+                  async for message in channel.history(limit=99999, oldest_first = True):
+                    msg_time = message.created_at
+                    msg_date = (msg_time.year, msg_time.month, msg_time.day)
+                    if msg_date != cur_date:
+                      cur_date = msg_date
+                      await cchannel.send(f"{cur_date}\n")
+                    await cchannel.send(f"{message.author.name}: {message.content}\n")
+                    for attachment in message.attachments:
+                      await cchannel.send(attachment.url)
+                
+              continue
+            ccat = await clone.create_category(cat.name)
+            print(f"Reading category {cat.name}.\n")
+            for channel in cat.channels:
+              print(f"Reading channel {channel.name}.\n")
+              cchannel = await ccat.create_text_channel(channel.name)
+              cur_date = (2020, 1, 1)
+              async for message in channel.history(limit=99999, oldest_first = True):
+                try:
+                  msg_time = message.created_at
+                  msg_date = (msg_time.year, msg_time.month, msg_time.day)
+                  if msg_date != cur_date:
+                    cur_date = msg_date
+                    await cchannel.send(f"{cur_date}\n")
+                  await cchannel.send(f"{message.author.name}: {message.content}\n")
+                  for attachment in message.attachments:
+                    await cchannel.send(attachment.url)
+                except:
+                  continue
+
+        case 'CHECKBOOK':
+          if len(command) == 1:
+            printable = printer.printcheck(db['checkbook'])
+            await message.channel.send(f"{printable}")
+          elif len(command) == 2 and command[1].isdigit():
+            pass
+            
+        
         case _:
           await wrong_command(message.channel)
           
