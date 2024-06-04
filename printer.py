@@ -408,7 +408,7 @@ def printhelp(cmd: str, requester) -> discord.Embed():
       return embed
       
 
-def printleg(char: Character):
+def printleg(char: Character) -> str:
   printable = f"{char.name}'s Legendary bonuses: \n"
   printable += f"Strength: +{char.legendary[0]}\n"
   printable += f"Dexterity: +{char.legendary[1]}\n"
@@ -419,7 +419,7 @@ def printleg(char: Character):
   printable += f"Luck: +{char.legendary[6]}\n"
   return printable
 
-def printtal(char: Character):
+def printtal(char: Character) -> str:
   # tal = [name, stat, mod_amount, desc]
   printable = ""
   if len(char.tal) == 0:
@@ -439,7 +439,7 @@ def printtal(char: Character):
 
   return printable
 
-def printaff(char: Character):
+def printaff(char: Character) -> str:
   # aff = [name, tier, stat, mod_amount, desc]
   printable = ""
   if len(char.aff) == 0:
@@ -457,13 +457,13 @@ def printaff(char: Character):
 
   return printable
 
-def printcheck(checkbook: dict):
+def printcheck(checkbook: dict) -> str:
   printable = ""
   for name in checkbook:
     printable += f"{name}: {checkbook[name]}\n"
   return printable
 
-def printhp(char: Character):
+def printhp(char: Character) -> str:
   printable = ""
   hp_percent = math.floor((char.hp / char.max_hp) * 16)
   printable += "⧼"
@@ -479,3 +479,19 @@ def printhp(char: Character):
   if char.thp > 0:
     printable += f"❬{char.thp}❭"
   return printable
+
+def printxp(char: Character) -> str:
+  printable = ""
+  xp_til_next = 240 * char.level - 100
+  xp_percent = math.floor((char.xp / xp_til_next) * 16)
+  printable += f"{char.level} ⧼"
+  for i in range(16):
+    if i < xp_percent:
+      printable += "▓"
+    else:
+      printable += "░"
+  printable += f"⧽ {char.level + 1}\n"
+  # printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
+  return printable
+  pass
+  

@@ -169,7 +169,6 @@ async def on_ready():
   print(f'We have logged in as {client.user}')
   
 
-
 @client.event
 async def on_guild_join(guild):
   for channel in guild.channels:
@@ -189,7 +188,6 @@ async def on_raw_message_delete(payload):
         await client.get_channel(payload.channel_id).send("Linked CSH deleted.")
         break
   
-
 @client.event
 async def on_raw_reaction_add(payload):
   rtn_name = str(payload.emoji.name)
@@ -419,14 +417,17 @@ async def on_message(message):
         # Prints out, or modifies XP
         case 'XP':
           if len(command) == 1:
-            await message.reply(f"XP - {char.xp}/{240 * char.level - 100}", 
-                               mention_author=False)
+            printable = printer.printxp(char)
+            xp_til_next = 240 * char.level - 100
+            printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
+            await message.reply(printable, mention_author=False)
           elif len(command) == 2:
             try:
               xp_change = int(command[1])
               printable = modify.modxp(char, xp_change)
               await save_char(char)
-              await message.reply(printable, mention_author=False)
+              await message.reply(f"{printer.printxp(char)}{printable}", 
+                                  mention_author=False)
             except:
               await wrong_command(message.channel)
           else:
@@ -435,12 +436,13 @@ async def on_message(message):
         # Prints out current level and XP
         case 'LEVEL': 
           if len(command) == 1:
-            await message.reply(f"Level - LV{char.level}, "
-                                f"{char.xp}/{240 * char.level - 100}",
-                                mention_author=False)
+            printable = printer.printxp(char)
+            xp_til_next = 240 * char.level - 100
+            printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
+            await message.reply(printable, mention_author=False)
           if len(command) == 3 and command[1] == "SET":
-            printable = f"Level - LV{char.level} -> **LV{command[2]}**, "\
-            f"{char.xp}/{240*char.level-100} -> **0/{240*int(command[2])-100}**"
+            printable = f"LV{char.level}, {char.xp}/{240*char.level-100} -> "\
+            f"**LV{command[2]}**, **0/{240*int(command[2])-100}**"
             old_level = char.level
             char.level = int(command[2])
             char.xp = 0
@@ -448,7 +450,8 @@ async def on_message(message):
             if old_level != char.level:
               char.hp = char.max_hp
             await save_char(char)
-            await message.reply(printable, mention_author=False)
+            await message.reply(f"{printer.printxp(char)}{printable}", 
+                                mention_author=False)
 
         # Prints out, or modifies legendary bonuses
         case 'LEGEND':
@@ -501,6 +504,7 @@ async def on_message(message):
               except:
                 await wrong_command(message.channel)
                 return
+            # Removing a talisman
             elif action == 'RM':
               try:
                 printable = modify.modtal(char, action, int(command[2]))
@@ -805,7 +809,6 @@ async def on_message(message):
           elif len(command) == 2 and command[1].isdigit():
             pass
             
-        
         case _:
           await wrong_command(message.channel)
           
