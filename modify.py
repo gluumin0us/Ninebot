@@ -181,12 +181,23 @@ def modtal(char: Character, action: str, tal) -> str:
       except:
         printable += "Something went wrong. Did you type everything correctly?\n"
     case 'RM':
-      try:
-        removed_tal = char.tal.pop(tal - 1)
-        printable += "Talisman removed!\n"\
-        f"*TAL{tal} - {removed_tal[0]}*\n"
-      except:
-        printable += f"Failed to remove TAL{tal}. Are you sure it exists?\n"
+      if tal.isdigit():
+        try:
+          removed_tal = char.tal.pop(int(tal) - 1)
+          printable += "Talisman removed!\n"\
+          f"*TAL{tal} - {removed_tal[0]}*\n"
+        except:
+          printable += f"Failed to remove TAL{tal}. Are you sure it exists?\n"
+      else:
+        try:
+          for i in range(len(char.tal)):
+            if char.tal[i][0].upper() == tal:
+              removed_tal = char.tal.pop(i)
+              printable += "Talisman removed!\n"\
+              f"*TAL{i+1} - {removed_tal[0]}*\n"
+        except:
+          printable += f"Failed to remove '{tal}'. Are you sure it exists?\n"
+          
     case _:
       printable += "I don't think you're quite using the command correctly. "
       printable += "Refer to `9..help tal` for more details.\n"
@@ -210,11 +221,13 @@ def modaff(char: Character, action: str, aff) -> str:
       printable += f"Affliction added!\n**{aff[0]} {aff[1]}**"
     case 'RM':
       for i in range(len(char.aff)):
+        failed_remove = True
         if char.aff[i][0] == aff:
           removed_aff = char.aff.pop(i)
           printable += f"Affliction removed!\n**{removed_aff[0]} {removed_aff[1]}**"
-          break
-      printable += f"I didn't find an affliction named {aff} to remove!\n"
+          failed_remove = False
+      if failed_remove:
+        printable += f"I didn't find an affliction named {aff} to remove!\n"
     case _:
       printable += "I don't think you're quite using the command correctly. "
       printable += "Refer to `9..help modaff` for more details."

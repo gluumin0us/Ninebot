@@ -61,7 +61,7 @@ def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
           char.tal, char.aff, char.rep, char.pt, char.mod, char.legendary, 
-          char.id, char.update_message]
+          char.id]
 
 def list_to_char(li_char: list):
   # Converts a character from a list to a Character object
@@ -75,7 +75,6 @@ def list_to_char(li_char: list):
   char.mod = li_char[9]
   char.legendary = li_char[10]
   char.id = li_char[11]
-  char.update_message = li_char[12]
   modify.restat(char)
   return char
 
@@ -141,8 +140,580 @@ def check_csh(msg: str):
       return db['name2id'][msg]
   return False
 
+
 def is_me(msg):
   return msg.author == client.user
+
+async def parse_command(id, channel, requester, msg):
+  original_command = msg.split('9..', 1)[1]
+  original_command = original_command.split()
+  if len(original_command) > 1 and original_command[-2].upper() == '-T':
+    original_command.pop()
+    original_command.pop()
+  command = msg.upper().split('9..', 1)[1]
+  if command == '':
+    print("What's your command?")
+  command = command.split()
+  if len(command) > 1 and command[-2] == '-T':
+    name2id = db['name2id']
+    found_name = False
+    for name in name2id:
+      if name.startswith(command[-1]):
+        id = name2id[name]
+        found_name = True
+        break
+    command.pop()
+    command.pop()
+    if not found_name:
+      await channel.send("Error: target name not found.\n")
+      return
+  char = find_char(id)
+  if command[0] in ['REGISTER', 'HELP', 'DM']:
+    char = True
+  if char:
+    match command[0]:
+
+      # Prints out helpful information
+      case 'HELP':
+        printable = ""
+        if len(command) == 1:
+          printable = printer.printhelp("MAIN", requester)
+          await channel.send(embed=printable)
+        elif len(command) == 2:
+          printable = printer.printhelp(command[1], requester)
+          await channel.send(embed=printable)
+        else:
+          await wrong_command(channel)
+
+      # Tells a joke
+      case 'JOKE':
+        response = requests.get('https://v2.jokeapi.dev/joke/Miscellaneous,Pun?blacklistFlags=racist')
+        json_data = response.json()
+        if json_data['type'] == "single":
+          await channel.send(json_data["joke"])
+        elif json_data['type'] == 'twopart':
+          await channel.send(json_data['setup'])
+          sleep(2)
+          await channel.send(json_data['delivery'])
+
+      # Prints out character information
+      case 'CHAR':
+        if len(command) == 1:
+          printable = "\n".join(printer.printchar(char))
+          await channel.send(printable)
+        else:
+          await wrong_command(channel)
+
+      # Prints out, or modifies HP
+      case 'HP':
+        if len(command) == 1:
+          printable = printer.printhp(char)
+          await channel.send(printable)
+        elif len(command) == 2:
+          hp_change = 500 if command[1] == "FULL" else int(command[1])
+          printable = modify.modhp(char, hp_change)
+          await save_char(char)
+          await channel.send(printable)
+        else:
+          await wrong_command(channel)
+
+      # Prints out, or modifies THP
+      case 'THP':
+        if len(command) == 1:
+          await channel.send(f"THP - {char.thp}")
+        elif len(command) == 2:
+          old_thp = char.thp
+          char.thp += int(command[1])
+          if char.thp < 0:
+            char.thp = 0
+          await save_char(char)
+          await channel.send(f"THP - {old_thp} -> **{char.thp}**", 
+                          )
+        else:
+          await wrong_command(channel)
+
+      # Rolls a d20, and optionally adds stats
+      case 'ROLL':
+        result = random.randint(1, 20)
+        if len(command) == 1:
+          await channel.send (f"Rolling a d20... **-{result}-**", 
+                          )
+          if result == 20:
+            await channel.send("**Natural 20!**")
+        elif len(command) == 2:
+          printable = printer.printroll(char, result, command[1])
+          await channel.send(printable)
+          if result == 20:
+            legendary = random.randint(1, 10)
+            await channel.send("Rolling for legendaries...")
+            sleep(0.5)
+            await channel.send(":drum: :drum: :drum: ")
+            sleep(2)
+            if legendary == 10:
+              await channel.send("**10!**\n **LEGENDARY!!!**")
+            else:
+              await channel.send(f"{legendary}\nBetter luck next time!")
+        else:
+          await wrong_command(channel)
+
+      # Prints out, or modifies XP
+      case 'XP':
+        if len(command) == 1:
+          printable = printer.printxp(char)
+          xp_til_next = 240 * char.level - 100
+          printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
+          await channel.send(printable)
+        elif len(command) == 2:
+          try:
+            xp_change = int(command[1])
+            printable = modify.modxp(char, xp_change)
+            await save_char(char)
+            await channel.send(f"{printer.printxp(char)}{printable}", 
+                            )
+          except:
+            await wrong_command(channel)
+        else:
+          await wrong_command(channel)
+
+      # Prints out current level and XP
+      case 'LEVEL': 
+        if len(command) == 1:
+          printable = printer.printxp(char)
+          xp_til_next = 240 * char.level - 100
+          printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
+          await channel.send(printable)
+        if len(command) == 3 and command[1] == "SET":
+          printable = f"LV{char.level}, {char.xp}/{240*char.level-100} -> "\
+          f"**LV{command[2]}**, **0/{240*int(command[2])-100}**"
+          old_level = char.level
+          char.level = int(command[2])
+          char.xp = 0
+          modify.restat(char)
+          if old_level != char.level:
+            char.hp = char.max_hp
+          await save_char(char)
+          await channel.send(f"{printer.printxp(char)}{printable}", 
+                          )
+
+      # Prints out, or modifies legendary bonuses
+      case 'LEGEND':
+        if len(command) == 1:
+          printable = printer.printleg(char)
+          await channel.send(printable)
+        elif len(command) == 3:
+          try:
+            printable = modify.modleg(char, command[1], int(command[2]))
+            await save_char(char)
+            await channel.send(printable)
+          except:
+            await wrong_command(channel)
+        else:
+          await wrong_command(channel)
+
+      # Prints out, adds, or removes talismans
+      case 'TAL':
+        printable = ""
+        if len(command) == 1:
+          printable = printer.printtal(char)
+          await channel.send(printable)
+        else:
+          action = command[1]
+          if action == 'ADD':
+            try:
+              tal_desc = ""
+              if '\n' in msg:
+                tal_desc = msg.split('\n')[1]
+              # handing multi-word names
+              tal_name = original_command.pop(2)
+              command.pop(2)
+              while (len(original_command) >= 3 and 
+                     original_command[2].upper() not in modify.stat_to_int and 
+                    not tal_desc.startswith(original_command[2])):
+                tal_name += f" {original_command.pop(2)}"
+                command.pop(2)
+
+              # handling stat modifications
+              tal_stat = []
+              tal_mod = []
+              for i in range(len(command)):
+                if command[i] in modify.stat_to_int:
+                  tal_stat.append(command[i])
+                  tal_mod.append(int(command[i+1]))
+
+              tal = [tal_name, tal_stat, tal_mod, tal_desc]
+
+              printable = modify.modtal(char, action, tal)
+            except:
+              await wrong_command(channel)
+              return
+          # Removing a talisman
+          elif action == 'RM':
+            try:
+              command.pop(0)
+              command.pop(0)
+              command = " ".join(command)
+              printable = modify.modtal(char, action, command)
+            except:
+              await wrong_command(channel)
+              return
+          else:
+            await wrong_command(channel)
+            return
+          await save_char(char)
+          await channel.send(printable)
+
+      # Prints out, adds, or removes afflictions
+      case 'AFF':
+        if len(command) == 1:
+          printable = printer.printaff(char)
+          await channel.send(printable)
+        else:
+          action = command[1]
+          if action == 'ADD':
+            try:
+              aff_name = command[2]
+              aff_tier = 0
+              if command[3].isdigit():
+                aff_tier = int(command.pop(3))
+                original_command.pop(3)
+
+              i = 0;
+              aff_stat = []
+              aff_mod = []
+              if len(command) > 3:
+                while command[3] in modify.stat_to_int:
+                  aff_stat.append(command.pop(3))
+                  aff_mod.append(int(command.pop(3)))
+                  original_command.pop(i)
+                  original_command.pop(i)
+                  if len(command) < 4:
+                    break
+
+              aff_desc = ""
+              for i in range(3, len(original_command)):
+                aff_desc += f"{original_command[i]} "
+
+              aff = [aff_name, aff_tier, aff_stat, aff_mod, aff_desc]
+              printable = modify.modaff(char, action, aff)
+            except:
+              await wrong_message(channel)
+              return
+
+          elif action == 'RM':
+            try:
+              printable = modify.modaff(char, action, command[2])
+            except:
+              await wrong_message(channel)
+              return
+
+          else:
+            await wrong_message(channel)
+            return
+          await save_char(char)
+          await channel.send(printable)
+
+      # Registers a new character if one does not exist
+      case 'REGISTER':
+        if id in db:
+          await channel.send("You already have a character!")
+          return
+        elif len(command) == 1:
+          await channel.send("You need to input a name!\n "\
+          "e.g. 9..register Felix")
+          return
+        elif len(command) == 2:
+          new_name = command[1]
+          if new_name in db["name2id"]:
+            await channel.send(f"Name \"{new_name}\" already taken!\n")
+            return
+          new_char = Character(new_name.capitalize(), 1, 0)
+          new_char.id = id
+          modify.restat(new_char)
+          db["name2id"][new_name] = id
+          db["id2name"][id] = new_name
+          db["checkbook"][new_name] = 13
+          await update_rep()
+          db[id] = char_to_list(new_char)
+          char_cache[id] = new_char
+          await channel.send("New character registered!\n"\
+            f"Welcome to the Magic Casino, {new_name.capitalize()}!", 
+                          )
+        elif len(command) > 2:
+          command = command.pop(0)
+          new_char = modify.makechar(command)
+
+      # Unregisters an existing character.
+      case 'UNREGISTER':
+        if len(command) == 1:
+          db.pop(id)
+          rm_char = char_cache.pop(id)
+          await channel.send(f"Character unregistered: {rm_char.name}")
+
+      # Ticks forward certain effects like bleeding
+      case 'TICK':
+        if len(command) == 1:
+          printable = modify.tick(char)
+          await save_char(char)
+          await channel.send(printable)
+
+      # Prints out a list of admins (WIP)
+      case 'ADMIN':
+        if len(command) == 1:
+          printable = "Current Admins:\n"
+          for member_id in db['ADMINS']:
+            member = await client.fetch_user(int(member_id))
+            printable += f"{member.display_name}\t"
+          await channel.send(printable)
+
+      # Takes in a user ID to output the tul commands to copy them
+      case 'CLONE':
+        if len(command) == 2:
+          clone_id = int(command[1])
+          clone = await client.fetch_user(int(clone_id))
+          clone_name = clone.display_name
+          clone_avatar = str(clone.avatar)
+          await channel.send(
+            f"`tul!register '{clone_name}' text>>{clone_name}`"
+          )
+          await channel.send(
+            f"`tul!avatar '{clone_name}' {clone_avatar}`"
+          )
+
+      # Prints out, or modifies reputation.
+      case 'REP':
+        if len(command) == 1:
+          try:
+            printable = f"Current Rep for {char.name}: "\
+            f"{db['checkbook'][char.name]}\n"
+            if char.rep <= 0:
+              printable += "**DEADBEAT**"
+          except:
+            return
+        elif len(command) == 2:
+          printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
+          db['checkbook'][char.name] += int(command[1])
+          printable += f"**{db['checkbook'][char.name]}**\n"
+          if db['checkbook'][char.name] <= 0:
+            printable += "**DEADBEAT**"
+          await update_rep()
+
+        elif len(command) == 3 and command[1] == 'SET':
+          printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
+          db['checkbook'][char.name] = int(command[2])
+          printable += f"**{db['checkbook'][char.name]}**\n"
+          if db['checkbook'][char.name] <= 0:
+            printable += "**DEADBEAT**"
+          await update_rep()
+        await channel.send(printable)
+
+      # Makes, or resets linked CSHs for all characters.
+      case 'ALL-LEVELS':
+        if len(command) == 1:
+          print("all levels case entered")
+          not_first = False
+          for cur_char_name in db["name2id"]:
+            cur_id = db["name2id"][cur_char_name]
+            cur_char = find_char(cur_id)
+            if cur_char:
+              printable = ":link:  "
+              printable += "\n".join(printer.printchar(cur_char))
+              if not_first:
+                await channel.send("​")
+              msg = await channel.send(printable)
+              not_first = True
+              cur_char.update_message.append((channel.id, msg.id))
+              if cur_id not in db['linked_csh']:
+                db['linked_csh'][cur_id] = []
+              db['linked_csh'][cur_id].append((channel.id, msg.id))
+              await save_char(cur_char)
+        elif len(command) == 2 and command[1] == 'RESET':
+          for cur_char in db["linked_csh"]:
+            db['linked_csh'][cur_char] = []
+          await channel.send("Update Messages reset.")
+        elif len(command) == 3 and command[1] == 'ADD':
+          print(f"Add case entered, adding {command[2]}")
+          cur_id = db["name2id"][command[2]]
+          cur_char = find_char(cur_id)
+          if cur_char:
+            printable = ":link: "
+            printable += "\n".join(printer.printchar(cur_char))
+            msg = await channel.send(printable)
+            cur_char.update_message.append((channel.id, msg.id))
+            if cur_id not in db['linked_csh']:
+              db['linked_csh'][cur_id] = []
+            db['linked_csh'][cur_id].append((channel.id, msg.id))
+            await save_char(cur_char)
+
+      # Shows the data stored in the database.
+      case 'DB':
+        if len(command) == 1:
+          printable = ""
+          for key in db.keys():
+            printable += f"{key}\t"
+          await channel.send(printable)
+        elif len(command) == 2:
+          key = command[1].lower()
+          if key in db:
+            printable = db[key]
+            await channel.send(printable)
+
+      # Sends someone a DM via Nine.
+      case 'DM':
+        if len(command) > 1:
+          user = await client.fetch_user(int(id))
+          original_command.pop(0)
+          printable = " ".join(original_command)
+          await user.send(content=printable)
+
+      case 'CAST':
+        if len(command) == 2:
+          printable = ""
+          for i in range(len(spells.spell_root)):
+            if command[1] == spells.spell_root[i]:
+              printable += f"{message.author.display_name} is casting "\
+              f"{spells.spell_name[i]}!\n\"{spells.spell_incantation[i]}\""
+              break
+          await channel.send(printable)
+
+      case 'PURGE':
+        if len(command) == 1:
+          await channel.send("How many messages would you like to purge?\n", 
+                    )
+        elif len(command) == 2:
+          try:
+            limit = int(command[1])
+            await channel.purge(limit=limit, check=is_me, bulk=False)
+          except:
+            await wrong_command(channel)
+
+      case 'LOCATION':
+        await channel.send(db['location_msg'])
+
+      case 'CLONE_SERVER':
+        print("Entered clone_server case.\n")
+        clone = client.get_guild(1244818345157726349)
+        casino = client.get_guild(797104015304294401)
+        for cat in casino.categories:
+          if cat.id == 927012133143728179 or cat.id == 797194987288002620:
+            continue
+
+          if cat.name == "Training Scaffolds":
+            continue
+          if cat.name == "Hegemopolis":
+            continue
+          if cat.name == "Stone Dungeon":
+            continue
+          if cat.name == "The Hub":
+            continue
+          if cat.name == "Upper Platforms":
+            continue
+          if cat.name in ["Family Camps", "Red Hell", "The Ranch", "Marcel Base", 
+                         "The Snake Pit", "Snace Lodging"]:
+            continue
+          if cat.name == "The Islands":
+            for channel in cat.channels:
+              if channel.name == "island-6":
+                cchannel = await clone.create_text_channel(channel.name)
+                cur_date = (2020, 1, 1)
+                async for message in channel.history(limit=99999, oldest_first = True):
+                  msg_time = message.created_at
+                  msg_date = (msg_time.year, msg_time.month, msg_time.day)
+                  if msg_date != cur_date:
+                    cur_date = msg_date
+                    await cchannel.send(f"{cur_date}\n")
+                  await cchannel.send(f"{message.author.name}: {message.content}\n")
+                  for attachment in message.attachments:
+                    await cchannel.send(attachment.url)
+
+            continue
+          ccat = await clone.create_category(cat.name)
+          print(f"Reading category {cat.name}.\n")
+          for channel in cat.channels:
+            print(f"Reading channel {channel.name}.\n")
+            cchannel = await ccat.create_text_channel(channel.name)
+            cur_date = (2020, 1, 1)
+            async for message in channel.history(limit=99999, oldest_first = True):
+              try:
+                msg_time = message.created_at
+                msg_date = (msg_time.year, msg_time.month, msg_time.day)
+                if msg_date != cur_date:
+                  cur_date = msg_date
+                  await cchannel.send(f"{cur_date}\n")
+                await cchannel.send(f"{message.author.name}: {message.content}\n")
+                for attachment in message.attachments:
+                  await cchannel.send(attachment.url)
+              except:
+                continue
+
+      case 'CHECKBOOK':
+        if len(command) == 1:
+          printable = printer.printcheck(db['checkbook'])
+          await channel.send(f"{printable}")
+        elif len(command) == 2 and command[1].isdigit():
+          pass
+
+      case 'PRINT':
+        if len(command) == 1:
+          await channel.send("What would you like to print?")
+        elif len(command) != 1:
+          original_command.pop(0)
+          printable = " ".join(original_command)
+          await channel.send(printable)
+          
+      case 'MACRO':
+        macros = {}
+        try:
+          macros = db['macros'][id]
+        except:
+          pass
+        if len(command) == 1:
+          printable = ""
+          if len(macros) == 0:
+            await channel.send("You don't have any macros!")
+            return
+          printable += "Your current macros:\n"
+          for macro in macros:
+            printable += f"9..{macro.lower()}\n"
+          await channel.send(printable)
+        elif len(command) == 2 and command[1] in macros:
+          print("Entered info case.")
+          printable = f"**9..{command[1].lower()}:** \n```\n"
+          for macro_command in macros[command[1]]:
+            printable += f"{macro_command}\n"
+          printable += "\n```"
+          await channel.send(printable)
+        elif len(command) == 3 and command[1] == "RM":
+          if command[2] not in macros:
+            await channel.send(f"Couldn't find macro 9..{command[2].lower()}!")
+            return
+          macros.pop(command[2])
+          await channel.send(f"Macro `9..{command[2].lower()}` removed!")
+        elif len(command) > 2:
+          if command[1] == 'ADD':
+            macro_commands = msg.split("\n- ")
+            base_command = macro_commands.pop(0).split()[2]
+            macros[base_command.upper()] = macro_commands
+            db['macros'][id] = macros
+            await channel.send(f"Added macro:  **9..{base_command}**")
+            
+      case _:
+        macros = {}
+        try:
+          macros = db['macros'][id]
+        except:
+          pass
+        if command[0] in macros:
+          for macro_cmd in macros[command[0]]:
+            await parse_command(id, channel, requester, macro_cmd)
+        else:
+          await wrong_command(channel)
+
+
+
+  else:
+    await channel.send("You don't have a character yet! "\
+                               "Make one with `9..register`, or check out "\
+                               "`9..help` for more info!")
 
 # RUN ONE TIME COMMANDS HERE
 
@@ -161,11 +732,13 @@ async def on_ready():
   await client.change_presence(activity=discord.Game('9..help'))
 
   # one time on-start commands here:
+  
   # archive = client.get_guild(1241883869549170748)
   # casino = client.get_guild(797104015304294401)
-  # for channel in casino.text_channels:
-  #   if channel.name == "lightning-shift":
-  #     pass
+  # for cat in casino.text_channels:
+  #   if cat.name == "the-streets":
+  #     await cat.send("You can't stop me!")
+  
   print(f'We have logged in as {client.user}')
   
 
@@ -232,29 +805,29 @@ async def on_message(message):
   if message.author == client.user:
     return
   id = str(message.author.id)
-  channel_id = message.channel.id
+  channel = message.channel
   requester = (message.author.display_name, str(message.author.display_avatar))
   original_msg = message.content
-  msg = message.content.upper()
+  msg = original_msg.upper()
 
   # Saves the message in an archive server.
   archive = client.get_guild(ARCHIVE_ID)
   if message.guild.id != 1241883869549170748:
-    if message.channel.type == discord.ChannelType.text:
+    if channel.type == discord.ChannelType.text:
       has_channel = False
       for archive_channel in archive.text_channels:
-        if str(archive_channel) == str(message.channel):
+        if str(archive_channel) == str(channel):
           has_channel = True
           break
       if not has_channel:
-        await archive.create_text_channel(str(message.channel),
+        await archive.create_text_channel(str(channel),
                       category= await archive.fetch_channel(1241894024105951263))
       for archive_channel in archive.text_channels:
-        if archive_channel.name == message.channel.name:
+        if archive_channel.name == channel.name:
           await archive_channel.send(f"{message.author.name}: {message.content}\n")
           for attachment in message.attachments:
             await archive_channel.send(attachment.url)
-    elif message.channel.type == discord.ChannelType.private:
+    elif channel.type == discord.ChannelType.private:
       has_channel = False
       for archive_channel in archive.text_channels:
         if str(archive_channel) == message.author.name:
@@ -271,553 +844,39 @@ async def on_message(message):
 
   # Natural language responses.
   if "HEY NINE" in msg or "HI NINE" in msg or "HELLO NINE" in msg:
-    await message.channel.send(random.choice(printer.greetings_back))
+    await channel.send(random.choice(printer.greetings_back))
 
   if ("I LOVE" in msg or "ILY" in msg) and "NINE" in msg:
     if id == names['MIKEY']:
-      await message.channel.send("I love you too Mikey!")
+      await channel.send("I love you too Mikey!")
     else:
-      await message.channel.send(random.choice(printer.affection_back))
+      await channel.send(random.choice(printer.affection_back))
 
   if ("THANKS" in msg or "THANK YOU" in msg) and "NINE" in msg:
-    await message.channel.send("You're welcome!")
+    await channel.send("You're welcome!")
 
   if "TELL" in msg and "JOKE" in msg and "NINE" in msg:
     response = requests.get('https://v2.jokeapi.dev/joke/Pun')
     json_data = response.json()
     if json_data["type"] == "single":
-      await message.channel.send(json_data["joke"])
+      await channel.send(json_data["joke"])
     elif json_data['type'] == 'twopart':
-      await message.channel.send(json_data['setup'])
+      await channel.send(json_data['setup'])
       sleep(2)
-      await message.channel.send(json_data['delivery'])
+      await channel.send(json_data['delivery'])
 
   if msg.startswith("**__WHERE EVERYONE IS__**"):
     db["location_msg"] = original_msg
 
   # Location tracking module
   if len(message.channel_mentions) and message.reference:
-    reply_msg = await message.channel.fetch_message(message.reference.message_id)
+    reply_msg = await channel.fetch_message(message.reference.message_id)
     reply_author_id = reply_msg.author.id
-    db['locations'][str(reply_author_id)] = message.channel_mentions[0].jump_url
+    db['locations'][str(reply_author_id)] = channel_mentions[0].jump_url
 
   # Most methods of Ninebot starts with 9..
   if msg.startswith('9..'):
-    original_command = original_msg.split('9..', 1)[1]
-    original_command = original_command.split()
-    if len(original_command) > 1 and original_command[-2].upper() == '-T':
-      original_command.pop()
-      original_command.pop()
-    command = msg.split('9..', 1)[1]
-    if command == '':
-      print("What's your command?")
-    command = command.split()
-    if len(command) > 1 and command[-2] == '-T':
-      name2id = db['name2id']
-      found_name = False
-      for name in name2id:
-        if name.startswith(command[-1]):
-          id = name2id[name]
-          found_name = True
-          break
-      command.pop()
-      command.pop()
-      if not found_name:
-        await message.channel.send("Error: target name not found.\n")
-        return
-    char = find_char(id)
-    if command[0] in ['REGISTER', 'HELP', 'DM']:
-      char = True
-    if char:
-      match command[0]:
-      
-        # Prints out helpful information
-        case 'HELP':
-          printable = ""
-          if len(command) == 1:
-            printable = printer.printhelp("MAIN", requester)
-            await message.channel.send(embed=printable)
-          elif len(command) == 2:
-            printable = printer.printhelp(command[1], requester)
-            await message.channel.send(embed=printable)
-          else:
-            await wrong_command(message.channel)
-        
-        # Tells a joke
-        case 'JOKE':
-          response = requests.get('https://v2.jokeapi.dev/joke/Miscellaneous,Pun?blacklistFlags=racist')
-          json_data = response.json()
-          if json_data['type'] == "single":
-            await message.channel.send(json_data["joke"])
-          elif json_data['type'] == 'twopart':
-            await message.channel.send(json_data['setup'])
-            sleep(2)
-            await message.channel.send(json_data['delivery'])
-
-        # Prints out character information
-        case 'CHAR':
-          if len(command) == 1:
-            printable = "\n".join(printer.printchar(char))
-            await message.channel.send(printable)
-          else:
-            await wrong_command(message.channel)
-
-        # Prints out, or modifies HP
-        case 'HP':
-          if len(command) == 1:
-            printable = printer.printhp(char)
-            await message.reply(printable, mention_author=False)
-          elif len(command) == 2:
-            hp_change = 500 if command[1] == "FULL" else int(command[1])
-            printable = modify.modhp(char, hp_change)
-            await save_char(char)
-            await message.reply(printable, mention_author=False)
-          else:
-            await wrong_command(message.channel)
-            
-        # Prints out, or modifies THP
-        case 'THP':
-          if len(command) == 1:
-            await message.reply(f"THP - {char.thp}", mention_author=False)
-          elif len(command) == 2:
-            old_thp = char.thp
-            char.thp += int(command[1])
-            if char.thp < 0:
-              char.thp = 0
-            await save_char(char)
-            await message.reply(f"THP - {old_thp} -> **{char.thp}**", 
-                               mention_author=False)
-          else:
-            await wrong_command(message.channel)
-
-        # Rolls a d20, and optionally adds stats
-        case 'ROLL':
-          result = random.randint(1, 20)
-          if len(command) == 1:
-            await message.reply (f"Rolling a d20... **-{result}-**", 
-                                mention_author=False)
-            if result == 20:
-              await message.channel.send("**Natural 20!**")
-          elif len(command) == 2:
-            printable = printer.printroll(char, result, command[1])
-            await message.reply(printable, mention_author=False)
-            if result == 20:
-              legendary = random.randint(1, 10)
-              await message.channel.send("Rolling for legendaries...")
-              sleep(0.5)
-              await message.channel.send(":drum: :drum: :drum: ")
-              sleep(2)
-              if legendary == 10:
-                await message.channel.send("**10!**\n **LEGENDARY!!!**")
-              else:
-                await message.channel.send(f"{legendary}\nBetter luck next time!")
-          else:
-            await wrong_command(message.channel)
-
-        # Prints out, or modifies XP
-        case 'XP':
-          if len(command) == 1:
-            printable = printer.printxp(char)
-            xp_til_next = 240 * char.level - 100
-            printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
-            await message.reply(printable, mention_author=False)
-          elif len(command) == 2:
-            try:
-              xp_change = int(command[1])
-              printable = modify.modxp(char, xp_change)
-              await save_char(char)
-              await message.reply(f"{printer.printxp(char)}{printable}", 
-                                  mention_author=False)
-            except:
-              await wrong_command(message.channel)
-          else:
-            await wrong_command(message.channel)
-
-        # Prints out current level and XP
-        case 'LEVEL': 
-          if len(command) == 1:
-            printable = printer.printxp(char)
-            xp_til_next = 240 * char.level - 100
-            printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
-            await message.reply(printable, mention_author=False)
-          if len(command) == 3 and command[1] == "SET":
-            printable = f"LV{char.level}, {char.xp}/{240*char.level-100} -> "\
-            f"**LV{command[2]}**, **0/{240*int(command[2])-100}**"
-            old_level = char.level
-            char.level = int(command[2])
-            char.xp = 0
-            modify.restat(char)
-            if old_level != char.level:
-              char.hp = char.max_hp
-            await save_char(char)
-            await message.reply(f"{printer.printxp(char)}{printable}", 
-                                mention_author=False)
-
-        # Prints out, or modifies legendary bonuses
-        case 'LEGEND':
-          if len(command) == 1:
-            printable = printer.printleg(char)
-            await message.reply(printable, mention_author=False)
-          elif len(command) == 3:
-            try:
-              printable = modify.modleg(char, command[1], int(command[2]))
-              await save_char(char)
-              await message.reply(printable, mention_author=False)
-            except:
-              await wrong_command(message.channel)
-          else:
-            await wrong_command(message.channel)
-
-        # Prints out, adds, or removes talismans
-        case 'TAL':
-          if len(command) == 1:
-            printable = printer.printtal(char)
-            await message.channel.send(printable)
-          else:
-            action = command[1]
-            if action == 'ADD':
-              try:
-                tal_desc = ""
-                if '\n' in message.content:
-                  tal_desc = message.content.split('\n')[1]
-                # handing multi-word names
-                tal_name = original_command.pop(2)
-                command.pop(2)
-                while (len(original_command) >= 3 and 
-                       original_command[2].upper() not in modify.stat_to_int and 
-                      not tal_desc.startswith(original_command[2])):
-                  tal_name += f" {original_command.pop(2)}"
-                  command.pop(2)
-
-                # handling stat modifications
-                tal_stat = []
-                tal_mod = []
-                for i in range(len(command)):
-                  if command[i] in modify.stat_to_int:
-                    print(command[i], command[i+1])
-                    tal_stat.append(command[i])
-                    tal_mod.append(int(command[i+1]))
-                
-                tal = [tal_name, tal_stat, tal_mod, tal_desc]
-  
-                printable = modify.modtal(char, action, tal)
-              except:
-                await wrong_command(message.channel)
-                return
-            # Removing a talisman
-            elif action == 'RM':
-              try:
-                printable = modify.modtal(char, action, int(command[2]))
-              except:
-                await wrong_command(message.channel)
-                return
-            else:
-              await wrong_command(message.channel)
-              return
-            await save_char(char)
-            await message.reply(printable, mention_author=False)
-
-        # Prints out, adds, or removes afflictions
-        case 'AFF':
-          if len(command) == 1:
-            printable = printer.printaff(char)
-            await message.channel.send(printable)
-          else:
-            action = command[1]
-            if action == 'ADD':
-              try:
-                aff_name = command[2]
-                aff_tier = 0
-                if command[3].isdigit():
-                  aff_tier = int(command.pop(3))
-                  original_command.pop(3)
-                
-                i = 0;
-                aff_stat = []
-                aff_mod = []
-                if len(command) > 3:
-                  while command[3] in modify.stat_to_int:
-                    aff_stat.append(command.pop(3))
-                    aff_mod.append(int(command.pop(3)))
-                    original_command.pop(i)
-                    original_command.pop(i)
-                    if len(command) < 4:
-                      break
-                    
-                aff_desc = ""
-                for i in range(3, len(original_command)):
-                  aff_desc += f"{original_command[i]} "
-  
-                aff = [aff_name, aff_tier, aff_stat, aff_mod, aff_desc]
-                printable = modify.modaff(char, action, aff)
-              except:
-                await wrong_message(message.channel)
-                return
-              
-            elif action == 'RM':
-              try:
-                printable = modify.modaff(char, action, command[2])
-              except:
-                await wrong_message(message.channel)
-                return
-
-            else:
-              await wrong_message(message.channel)
-              return
-            await save_char(char)
-            await message.reply(printable, mention_author=False)
-
-        # Registers a new character if one does not exist
-        case 'REGISTER':
-          if id in db:
-            await message.channel.send("You already have a character!")
-            return
-          elif len(command) == 1:
-            await message.channel.send("You need to input a name!\n "\
-            "e.g. 9..register Felix")
-            return
-          elif len(command) == 2:
-            new_name = command[1]
-            if new_name in db["name2id"]:
-              await message.channel.send(f"Name \"{new_name}\" already taken!\n")
-              return
-            new_char = Character(new_name.capitalize(), 1, 0)
-            new_char.id = id
-            modify.restat(new_char)
-            db["name2id"][new_name] = id
-            db["id2name"][id] = new_name
-            db["checkbook"][new_name] = 13
-            await update_rep()
-            db[id] = char_to_list(new_char)
-            char_cache[id] = new_char
-            await message.reply("New character registered!\n"\
-              f"Welcome to the Magic Casino, {new_name.capitalize()}!", 
-                               mention_author=False)
-          elif len(command) > 2:
-            command = command.pop(0)
-            new_char = modify.makechar(command)
-
-        # Unregisters an existing character.
-        case 'UNREGISTER':
-          if len(command) == 1:
-            db.pop(id)
-            rm_char = char_cache.pop(id)
-            await message.channel.send(f"Character unregistered: {rm_char.name}")
-
-        # Ticks forward certain effects like bleeding
-        case 'TICK':
-          if len(command) == 1:
-            printable = modify.tick(char)
-            await save_char(char)
-            await message.channel.send(printable)
-
-        # Prints out a list of admins (WIP)
-        case 'ADMIN':
-          if len(command) == 1:
-            printable = "Current Admins:\n"
-            for member_id in db['ADMINS']:
-              member = await client.fetch_user(int(member_id))
-              printable += f"{member.display_name}\t"
-            await message.channel.send(printable)
-
-        # Takes in a user ID to output the tul commands to copy them
-        case 'CLONE':
-          if len(command) == 2:
-            clone_id = int(command[1])
-            clone = await client.fetch_user(int(clone_id))
-            clone_name = clone.display_name
-            clone_avatar = str(clone.avatar)
-            await message.channel.send(
-              f"`tul!register '{clone_name}' text>>{clone_name}`"
-            )
-            await message.channel.send(
-              f"`tul!avatar '{clone_name}' {clone_avatar}`"
-            )
-
-        # Prints out, or modifies reputation.
-        case 'REP':
-          if len(command) == 1:
-            try:
-              printable = f"Current Rep for {char.name}: "\
-              f"{db['checkbook'][char.name]}\n"
-              if char.rep <= 0:
-                printable += "**DEADBEAT**"
-            except:
-              return
-          elif len(command) == 2:
-            printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
-            db['checkbook'][char.name] += int(command[1])
-            printable += f"**{db['checkbook'][char.name]}**\n"
-            if db['checkbook'][char.name] <= 0:
-              printable += "**DEADBEAT**"
-            await update_rep()
-              
-          elif len(command) == 3 and command[1] == 'SET':
-            printable = f"Rep for {char.name}: {db['checkbook'][char.name]} -> "
-            db['checkbook'][char.name] = int(command[2])
-            printable += f"**{db['checkbook'][char.name]}**\n"
-            if db['checkbook'][char.name] <= 0:
-              printable += "**DEADBEAT**"
-            await update_rep()
-          await message.reply(printable, mention_author=False)
-
-        # Makes, or resets linked CSHs for all characters.
-        case 'ALL-LEVELS':
-          if len(command) == 1:
-            print("all levels case entered")
-            not_first = False
-            for cur_char_name in db["name2id"]:
-              cur_id = db["name2id"][cur_char_name]
-              cur_char = find_char(cur_id)
-              if cur_char:
-                printable = ":link:  "
-                printable += "\n".join(printer.printchar(cur_char))
-                if not_first:
-                  await message.channel.send("​")
-                msg = await message.channel.send(printable)
-                not_first = True
-                channel_id = message.channel.id
-                cur_char.update_message.append((channel_id, msg.id))
-                if cur_id not in db['linked_csh']:
-                  db['linked_csh'][cur_id] = []
-                db['linked_csh'][cur_id].append((channel_id, msg.id))
-                await save_char(cur_char)
-          elif len(command) == 2 and command[1] == 'RESET':
-            for cur_char in db["linked_csh"]:
-              db['linked_csh'][cur_char] = []
-            await message.channel.send("Update Messages reset.")
-          elif len(command) == 3 and command[1] == 'ADD':
-            print(f"Add case entered, adding {command[2]}")
-            cur_id = db["name2id"][command[2]]
-            cur_char = find_char(cur_id)
-            if cur_char:
-              printable = ":link: "
-              printable += "\n".join(printer.printchar(cur_char))
-              msg = await message.channel.send(printable)
-              channel_id = message.channel.id
-              cur_char.update_message.append((channel_id, msg.id))
-              if cur_id not in db['linked_csh']:
-                db['linked_csh'][cur_id] = []
-              db['linked_csh'][cur_id].append((channel_id, msg.id))
-              await save_char(cur_char)
-
-        # Shows the data stored in the database.
-        case 'DB':
-          if len(command) == 1:
-            printable = ""
-            for key in db.keys():
-              printable += f"{key}\t"
-            await message.channel.send(printable)
-          elif len(command) == 2:
-            key = command[1].lower()
-            if key in db:
-              printable = db[key]
-              await message.channel.send(printable)
-
-        # Sends someone a DM via Nine.
-        case 'DM':
-          if len(command) > 1:
-            user = await client.fetch_user(int(id))
-            original_command.pop(0)
-            printable = " ".join(original_command)
-            await user.send(content=printable)
-
-        case 'CAST':
-          if len(command) == 2:
-            printable = ""
-            for i in range(len(spells.spell_root)):
-              if command[1] == spells.spell_root[i]:
-                printable += f"{message.author.display_name} is casting "\
-                f"{spells.spell_name[i]}!\n\"{spells.spell_incantation[i]}\""
-                break
-            await message.channel.send(printable)
-
-        case 'PURGE':
-          if len(command) == 1:
-            await message.reply("How many messages would you like to purge?\n", 
-                         mention_author=False)
-          elif len(command) == 2:
-            try:
-              limit = int(command[1])
-              await message.channel.purge(limit=limit, check=is_me, bulk=False)
-            except:
-              await wrong_command(message.channel)
-
-        case 'LOCATION':
-          await message.channel.send(db['location_msg'])
-
-        case 'CLONE_SERVER':
-          print("Entered clone_server case.\n")
-          clone = client.get_guild(1244818345157726349)
-          casino = client.get_guild(797104015304294401)
-          for cat in casino.categories:
-            if cat.id == 927012133143728179 or cat.id == 797194987288002620:
-              continue
-
-            if cat.name == "Training Scaffolds":
-              continue
-            if cat.name == "Hegemopolis":
-              continue
-            if cat.name == "Stone Dungeon":
-              continue
-            if cat.name == "The Hub":
-              continue
-            if cat.name == "Upper Platforms":
-              continue
-            if cat.name in ["Family Camps", "Red Hell", "The Ranch", "Marcel Base", 
-                           "The Snake Pit", "Snace Lodging"]:
-              continue
-            if cat.name == "The Islands":
-              for channel in cat.channels:
-                if channel.name == "island-6":
-                  cchannel = await clone.create_text_channel(channel.name)
-                  cur_date = (2020, 1, 1)
-                  async for message in channel.history(limit=99999, oldest_first = True):
-                    msg_time = message.created_at
-                    msg_date = (msg_time.year, msg_time.month, msg_time.day)
-                    if msg_date != cur_date:
-                      cur_date = msg_date
-                      await cchannel.send(f"{cur_date}\n")
-                    await cchannel.send(f"{message.author.name}: {message.content}\n")
-                    for attachment in message.attachments:
-                      await cchannel.send(attachment.url)
-                
-              continue
-            ccat = await clone.create_category(cat.name)
-            print(f"Reading category {cat.name}.\n")
-            for channel in cat.channels:
-              print(f"Reading channel {channel.name}.\n")
-              cchannel = await ccat.create_text_channel(channel.name)
-              cur_date = (2020, 1, 1)
-              async for message in channel.history(limit=99999, oldest_first = True):
-                try:
-                  msg_time = message.created_at
-                  msg_date = (msg_time.year, msg_time.month, msg_time.day)
-                  if msg_date != cur_date:
-                    cur_date = msg_date
-                    await cchannel.send(f"{cur_date}\n")
-                  await cchannel.send(f"{message.author.name}: {message.content}\n")
-                  for attachment in message.attachments:
-                    await cchannel.send(attachment.url)
-                except:
-                  continue
-
-        case 'CHECKBOOK':
-          if len(command) == 1:
-            printable = printer.printcheck(db['checkbook'])
-            await message.channel.send(f"{printable}")
-          elif len(command) == 2 and command[1].isdigit():
-            pass
-            
-        case _:
-          await wrong_command(message.channel)
-          
-            
-            
-    else:
-      await message.channel.send("You don't have a character yet! "\
-                                 "Make one with `9..register`, or check out "\
-                                 "`9..help` for more info!")
-      
+    await parse_command(id, channel, requester, original_msg)
+    
 my_secret = os.environ['TOKEN']
 client.run(my_secret)
