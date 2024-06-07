@@ -92,7 +92,6 @@ def printchar(char: Character):
 
   return printable
 
-
 def printroll(char: Character, base: int, stat: str):
   # Returns a string that prints out the results of a stat roll
   printable = ":game_die:  "
@@ -151,6 +150,9 @@ def printhelp(cmd: str, requester) -> discord.Embed():
                 "command target another player.\n"\
                 "e.g. `9..char -t jack` will show Jack's character instead "\
                 "of your own.\n\n"\
+                "Adding `-s` at the end of most commands will make it not "\
+                "print out a message, which might be helpful if you don't want to "\
+                "clutter up a chat or want more control over your macros.\n\n"\
                 "Some commands might have you input a stat. The respectives stats "\
                 "are `str`, `dex`, `cha`, `int`, `att`, `will`, and `luck`.",
       colour=0xff6600)
@@ -185,7 +187,13 @@ def printhelp(cmd: str, requester) -> discord.Embed():
         "__**9..tick**__\t"\
         "  Advances any persistent effects such as bleeding.\n"\
         "__**9..rep**__\t"\
-        "  Prints out, or modifies, your rep count.\n",
+        "  Prints out, or modifies, your rep count.\n"\
+        "__**9..cc**__\t"\
+        "  Prints out, adds, removes, or modifies, a custom counter.\n"\
+        "__**9..macro**__\t"\
+        "  Prints out, adds, removes, or shares, a macro.\n"\
+        "__**9..print**__\t"\
+        "  Prints out a message in the current channel.\n",
         inline=False)
 
       return embed
@@ -407,6 +415,30 @@ def printhelp(cmd: str, requester) -> discord.Embed():
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
 
+    case "CC":
+      embed = discord.Embed(title="9..cc",
+        description="This command will show all your current custom counters if you run it without arguments. A custom counter is where you can keep track of how many of something there are, whether it be how many arrows your have left or how many scaffold rooms you've explored. You can also print out a specific counter by doing `9..cc <name of the counter>`. \n\nIf you want to create a new counter, you can do so with `9..cc add <name of the counter (single word)> <arguments>`. \nIf you want to remove an existing counter, do `9..cc rm <name of the counter>`.\nIf you want to add or subtract value to a counter, do `9..cc <name of the counter> <number>`.\n\nArguments are different ways to customize your counter, you can have multiple arguments in any order. Here's a list: \n- `max <number>`: specifies the maximum value of the counter. IMPORTANT: This is a required argument, but if for some reason you've made a counter without specifing it, it defaults to 10.\n- `min <number>`: specifies the minimum value of the counter. Defaults to 0.\n- `val <number>`: specifies the starting value of the counter. Defaults to the max value. \n- `display <graphic>`: specifies if you want the counter to be displayed by graphics. Your options for graphics are: ✦star✧, ◈diamond◇, ◉circle◎, and ☒checkbox☐. If not specified, defaults to just printing out numbers. NOTE: not recommended for counters with a maximum higher than 20.\n- `milestone <array>`: if this option is specified, turns the counter into milestone style (think how your XP counter works), with each number in your milestone array being the next 'level-up' threshhold. Make sure your arrays don't have any spaces in them, like this: `[5,10,16,24,30]`, or else Nine will think it's multiple separate arguments.\n- `hidden <true/false>`: specifies if you want this counter to show up on your character sheet. If you specify true, then you won't be able to see it on your `9..char`, but everything else about it works the same. Defaults to false.\n\nCustom counters can be a bit confusing to make sense of at the start, so here are some examples of what a cc command might look like:\n```\n9..cc add Rations max 5 val 4 display circle hidden true\n```\nfor a custom counter called 'Rations' that has a maximum value of 5, current value of 4, each ration displayed as circles, and it doesn't show up on `9..char`:\nRations - ◉◉◉◉◎\n",
+      colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "MACRO":
+      embed = discord.Embed(title="9..macro",
+      description="This command lets you make macros. A macro, at its simplest, is one command that lets you call a bundle of one or more subcommands. It's quite powerful and lets you do a lot of things, but it's also hard to teach in a single help page. If you want to learn more (which I highly recommend), please just reach out to Simon (@gluumin0us), the author of this bot.\n\nThat being said, to see all the macros you have, do `9..macro`.\n\nTo view a specific macro and see its subcommands, do `9..macro <macro name>`.\n\nTo create a new macro, do: ```\n9..macro add <macro name (single word)>\n- <subcommand 1>\n- <subcommand 2>\n...\n```where each subcommand is another `9..` command that will be called by the macro.\n\nYou can have subcommands of a macro receive arguments from the macro call by putting `arg<number>` after them. For example, if you have the following macro: ```9..macro add roll_tracker\n- 9..cc add arg1 max 20 min 1 val 1```Calling `9..roll_tracker Dex` will make a custom counter named Dex, since the `9.cc` subcommand is taking in the first argument of the macro call as its name.\n\nYou can also take outputs from your subcommands by putting `-> <output variable name>` after the subcommand, and use the output as you would arguments in subsequent subcommands.\n\nTo actually call the macro, simply do `9..<macro name>`.\n",
+      colour=0xff6600)
+
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+
+    case "PRINT":
+      embed = discord.Embed(title="9..print",
+      description="This command is quite simple. It prints out, in whichever chat you called this command in, whatever you put after the command.\n\nFor example, `9..print Hello World!` will have Nine say 'Hello World!'. \n\nThis is mainly intended to be used in macros.\n",
+      colour=0xff6600)
+    
+      embed.set_author(name=req_name, icon_url=req_avatar)
+      return embed
+  
     case _:
       embed = discord.Embed(title="Command not found",
         description=f"I don't recognize 9..{cmd.lower()} as one of my commands...",
@@ -415,7 +447,6 @@ def printhelp(cmd: str, requester) -> discord.Embed():
       embed.set_author(name=req_name, icon_url=req_avatar)
       return embed
       
-
 def printleg(char: Character) -> str:
   printable = f"{char.name}'s Legendary bonuses: \n"
   printable += f"Strength: +{char.legendary[0]}\n"
