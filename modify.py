@@ -47,7 +47,7 @@ def modhp(char: Character, hp_change: int) -> str:
     printable += "⧽"
     for i in range(math.ceil(char.thp / 10)):
       printable += "❱"
-    printable += f"\n**{char.hp}/{char.max_hp}** "
+    printable += f"\n**HP - {char.hp}/{char.max_hp}** "
     if char.thp > 0:
       printable += f"❰**{char.thp}**❱"
   if not thp_blocked:
@@ -73,7 +73,7 @@ def modhp(char: Character, hp_change: int) -> str:
     printable += "⧽"
     for i in range(math.ceil(char.thp / 10)):
       printable += "❱"
-    printable += f"\n{old_hp}/{char.max_hp} "
+    printable += f"\nHP - {old_hp}/{char.max_hp} "
     if old_thp > 0:
       printable += f"❬{old_thp}❭ "
     printable += f"-> **{char.hp}/{char.max_hp}** "
@@ -259,4 +259,45 @@ def makechar(csh: list[str]) -> Character:
     char_level = csh[2].split(",", 1)[0]
     char_xp = csh[3].split("/", 1)[0]
   pass
-      
+
+def addcounter(char, c_info) -> str:
+  # name: [min, max, val, display, milestone, is_hidden]
+  args = ['MIN', 'MAX', 'VAL', 'DISPLAY', 'MILESTONE', 'HIDDEN']
+  counter = [0, 10, 10, 'NUM', None, 'FALSE']
+  name = ""
+  has_val = False
+  while True:
+    if len(c_info) == 0:
+      return "You need at least a max value to make a counter!"
+    if c_info[0].upper() not in args:
+      name += c_info.pop(0)
+    else:
+      break
+  for i in range(len(c_info)-1):
+    info = c_info[i].upper()
+    if info == "VAL":
+      has_val = True
+    for j in range(len(args)):
+      if args[j] == info:
+        counter[j] = c_info[i+1].upper()
+  for i in range(3):
+    counter[i] = int(counter[i])
+  if counter[4]:
+    counter[4] = eval(counter[4])
+  if not has_val:
+    counter[2] = counter[1]
+  char.counter[name] = counter
+  return f"Custom counter Added: **{name}**"
+
+def modcounter(char: Character, c_name: str, mod_amount: int) -> str:
+  # name: [min, max, val, display, is_hidden]
+  if c_name not in char.counter:
+    return f"Custom counter '{c_name}' not found!"
+  counter = char.counter[c_name]
+  old_val = counter[2]
+  counter[2] += mod_amount
+  if counter[2] > counter[1]:
+    counter[2] = counter[1]
+  elif counter[2] < counter[0]:
+    counter[2] = counter[0]
+  return f"{old_val}/{counter[1]} -> **{counter[2]}/{counter[1]}**"

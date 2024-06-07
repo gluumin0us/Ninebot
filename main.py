@@ -1,6 +1,7 @@
 import os
 import random
 import requests
+import re
 from time import sleep
 from datetime import datetime
 
@@ -61,7 +62,7 @@ def char_to_list(char: Character):
   # Converts a Character object to a list for storage
   return [char.name, char.level, char.xp, char.hp, char.thp, 
           char.tal, char.aff, char.rep, char.pt, char.mod, char.legendary, 
-          char.id]
+          char.id, char.counter]
 
 def list_to_char(li_char: list):
   # Converts a character from a list to a Character object
@@ -75,6 +76,7 @@ def list_to_char(li_char: list):
   char.mod = li_char[9]
   char.legendary = li_char[10]
   char.id = li_char[11]
+  char.counter = li_char[12]
   modify.restat(char)
   return char
 
@@ -145,32 +147,114 @@ def is_me(msg):
   return msg.author == client.user
 
 async def parse_command(id, channel, requester, msg):
+  # preparing the original message command
+  original_id = id
   original_command = msg.split('9..', 1)[1]
   original_command = original_command.split()
   if len(original_command) > 1 and original_command[-2].upper() == '-T':
     original_command.pop()
     original_command.pop()
+
+  # preparing the command
   command = msg.upper().split('9..', 1)[1]
   if command == '':
     print("What's your command?")
   command = command.split()
-  if len(command) > 1 and command[-2] == '-T':
-    name2id = db['name2id']
-    found_name = False
-    for name in name2id:
-      if name.startswith(command[-1]):
-        id = name2id[name]
-        found_name = True
-        break
-    command.pop()
-    command.pop()
-    if not found_name:
-      await channel.send("Error: target name not found.\n")
-      return
+  reply = True
+
+  macros = {}
+  try:
+    macros = db['macros'][id]
+  except:
+    pass
+  if command[0] in macros:
+    # cascading specifiers
+    specifier = ""
+    has_specifier = True
+    while has_specifier:
+      has_specifier = False
+      if len(command) > 1 and command[-1] == '-S':
+        has_specifier = True
+        specifier += f" {command.pop(-1)}"
+      if len(command) > 2 and command[-2] == '-T':
+        has_specifier = True
+        specifier += f" {command.pop(-2)} {command.pop(-1)}"
+    len_cmd = len(command)
+
+    output = {}
+    # iterating through macro commands
+    for macro_cmd in macros[command[0]]:
+
+      # getting outputs
+      has_output = False
+      if "->" in macro_cmd:
+        split_cmd = re.split("->\s*", macro_cmd, 1)
+        macro_cmd = split_cmd[0]
+        has_output = split_cmd[1]
+      
+      # replacing arguments
+      args = re.findall("arg[0-9]+", macro_cmd)
+      for arg in args:
+        arg_pos = int(arg.split("arg")[1])
+        if arg_pos >= len_cmd or command[arg_pos] == 'NULL':
+          macro_cmd = re.sub(arg, "", macro_cmd)
+        else:
+          macro_cmd = re.sub(arg, command[arg_pos].capitalize(), macro_cmd)
+
+      # replacing outputs
+      print(output)
+      for out_name in output:
+        if out_name in macro_cmd:
+          if output[out_name] is None:
+            macro_cmd = re.sub(out_name, "", macro_cmd)
+          else:
+            macro_cmd = re.sub(out_name, f" {output[out_name]}", macro_cmd)
+
+      # replacing python evals
+      while re.search("<py>", macro_cmd):
+        py_cmd = macro_cmd.split("<py>", 1)[1].split("</py>", 1)[0]
+        py_result = eval(py_cmd)
+        print(py_cmd, py_result)
+        macro_cmd = re.sub("<py>.*</py>", str(py_result), macro_cmd, 1)
+        print(macro_cmd)
+          
+      # calling subcommands
+      macro_cmd = f"{macro_cmd}{specifier}"
+      if has_output:
+        output[has_output] = await parse_command(id, channel, requester, macro_cmd)
+      else:
+        await parse_command(id, channel, requester, macro_cmd)
+    return
+
+  # Parsing targeting
+  if len(command) > 1 and command[0] == 'MACRO' and command[1] == 'ADD':
+    command = msg.upper().split('9..', 1)[1].split('\n- ')[0].split()
+  has_specifier = True
+  while has_specifier:
+    has_specifier = False
+    if len(command) > 1 and command[-1] == '-S':
+      reply = False
+      has_specifier = True
+      command.pop()
+    if len(command) > 2 and command[-2] == '-T':
+      has_specifier = True
+      name2id = db['name2id']
+      found_name = False
+      for name in name2id:
+        if name.startswith(command[-1]):
+          id = name2id[name]
+          found_name = True
+          break
+      command.pop()
+      command.pop()
+      if not found_name:
+        await channel.send("Error: target name not found.\n")
+        return
   char = find_char(id)
   if command[0] in ['REGISTER', 'HELP', 'DM']:
     char = True
   if char:
+    
     match command[0]:
 
       # Prints out helpful information
@@ -200,61 +284,95 @@ async def parse_command(id, channel, requester, msg):
       case 'CHAR':
         if len(command) == 1:
           printable = "\n".join(printer.printchar(char))
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
         else:
           await wrong_command(channel)
+        return char.name
 
       # Prints out, or modifies HP
       case 'HP':
         if len(command) == 1:
           printable = printer.printhp(char)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
         elif len(command) == 2:
           hp_change = 500 if command[1] == "FULL" else int(command[1])
           printable = modify.modhp(char, hp_change)
           await save_char(char)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
+        elif len(command) == 3 and command[1] == 'SET':
+          hp_change = int(command[2]) - char.hp
+          printable = modify.modhp(char, hp_change)
+          await save_char(char)
+          if reply:
+            await channel.send(printable)
         else:
           await wrong_command(channel)
+          return
+        return char.hp
 
       # Prints out, or modifies THP
       case 'THP':
         if len(command) == 1:
-          await channel.send(f"THP - {char.thp}")
+          if reply:
+            await channel.send(f"THP - {char.thp}")
         elif len(command) == 2:
           old_thp = char.thp
           char.thp += int(command[1])
           if char.thp < 0:
             char.thp = 0
           await save_char(char)
-          await channel.send(f"THP - {old_thp} -> **{char.thp}**", 
-                          )
+          if reply:
+            await channel.send(f"THP - {old_thp} -> **{char.thp}**")
+        elif len(command) == 3 and command[1] == 'SET':
+          old_thp = char.thp
+          char.thp = int(command[2])
+          if char.thp < 0:
+            char.thp = 0
+          await save_char(char)
+          if reply:
+            await channel.send(f"THP - {old_thp} -> **{char.thp}**")
         else:
           await wrong_command(channel)
+          return
+        return char.thp
 
       # Rolls a d20, and optionally adds stats
       case 'ROLL':
         result = random.randint(1, 20)
         if len(command) == 1:
-          await channel.send (f"Rolling a d20... **-{result}-**", 
-                          )
+          printable = f"Rolling a d20... **-{result}-**\n"
           if result == 20:
-            await channel.send("**Natural 20!**")
+            printable += "**Natural 20!**"
+          if reply:
+            await channel.send(printable)
+          return result
+          
         elif len(command) == 2:
-          printable = printer.printroll(char, result, command[1])
-          await channel.send(printable)
-          if result == 20:
-            legendary = random.randint(1, 10)
-            await channel.send("Rolling for legendaries...")
-            sleep(0.5)
-            await channel.send(":drum: :drum: :drum: ")
-            sleep(2)
-            if legendary == 10:
-              await channel.send("**10!**\n **LEGENDARY!!!**")
-            else:
-              await channel.send(f"{legendary}\nBetter luck next time!")
+          result = printer.printroll(char, result, command[1])
+          printable = result[0]
+          if reply:
+            await channel.send(printable)
+            if result == 20:
+              legendary = random.randint(1, 10)
+              if reply:
+                await channel.send("Rolling for legendaries...")
+              sleep(0.5)
+              if reply:
+                await channel.send(":drum: :drum: :drum: ")
+              sleep(2)
+              if legendary == 10:
+                if reply:
+                  await channel.send("**10!**\n **LEGENDARY!!!**")
+              else:
+                if reply:
+                  await channel.send(f"{legendary}\nBetter luck next time!")
+          return result[1]
         else:
           await wrong_command(channel)
+          return
 
       # Prints out, or modifies XP
       case 'XP':
@@ -262,18 +380,22 @@ async def parse_command(id, channel, requester, msg):
           printable = printer.printxp(char)
           xp_til_next = 240 * char.level - 100
           printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
         elif len(command) == 2:
           try:
             xp_change = int(command[1])
             printable = modify.modxp(char, xp_change)
             await save_char(char)
-            await channel.send(f"{printer.printxp(char)}{printable}", 
-                            )
+            if reply:
+              await channel.send(f"{printer.printxp(char)}{printable}")
           except:
             await wrong_command(channel)
+            return
         else:
           await wrong_command(channel)
+          return
+        return char.xp
 
       # Prints out current level and XP
       case 'LEVEL': 
@@ -281,7 +403,8 @@ async def parse_command(id, channel, requester, msg):
           printable = printer.printxp(char)
           xp_til_next = 240 * char.level - 100
           printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
         if len(command) == 3 and command[1] == "SET":
           printable = f"LV{char.level}, {char.xp}/{240*char.level-100} -> "\
           f"**LV{command[2]}**, **0/{240*int(command[2])-100}**"
@@ -292,30 +415,38 @@ async def parse_command(id, channel, requester, msg):
           if old_level != char.level:
             char.hp = char.max_hp
           await save_char(char)
-          await channel.send(f"{printer.printxp(char)}{printable}", 
-                          )
+          if reply:
+            await channel.send(f"{printer.printxp(char)}{printable}")
+        else:
+          await wrong_command(channel)
+          return
+        return char.level
 
       # Prints out, or modifies legendary bonuses
       case 'LEGEND':
+        printable = ""
         if len(command) == 1:
           printable = printer.printleg(char)
-          await channel.send(printable)
         elif len(command) == 3:
           try:
             printable = modify.modleg(char, command[1], int(command[2]))
             await save_char(char)
-            await channel.send(printable)
           except:
             await wrong_command(channel)
+            return
         else:
           await wrong_command(channel)
+          return
+        if reply:
+          await channel.send(printable)
 
       # Prints out, adds, or removes talismans
       case 'TAL':
         printable = ""
         if len(command) == 1:
           printable = printer.printtal(char)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
         else:
           action = command[1]
           if action == 'ADD':
@@ -360,13 +491,15 @@ async def parse_command(id, channel, requester, msg):
             await wrong_command(channel)
             return
           await save_char(char)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
 
       # Prints out, adds, or removes afflictions
       case 'AFF':
+        printable = ""
         if len(command) == 1:
           printable = printer.printaff(char)
-          await channel.send(printable)
+          
         else:
           action = command[1]
           if action == 'ADD':
@@ -410,6 +543,7 @@ async def parse_command(id, channel, requester, msg):
             await wrong_message(channel)
             return
           await save_char(char)
+        if reply:
           await channel.send(printable)
 
       # Registers a new character if one does not exist
@@ -435,7 +569,8 @@ async def parse_command(id, channel, requester, msg):
           await update_rep()
           db[id] = char_to_list(new_char)
           char_cache[id] = new_char
-          await channel.send("New character registered!\n"\
+          if reply:
+            await channel.send("New character registered!\n"\
             f"Welcome to the Magic Casino, {new_name.capitalize()}!", 
                           )
         elif len(command) > 2:
@@ -447,14 +582,16 @@ async def parse_command(id, channel, requester, msg):
         if len(command) == 1:
           db.pop(id)
           rm_char = char_cache.pop(id)
-          await channel.send(f"Character unregistered: {rm_char.name}")
+          if reply:
+            await channel.send(f"Character unregistered: {rm_char.name}")
 
       # Ticks forward certain effects like bleeding
       case 'TICK':
         if len(command) == 1:
           printable = modify.tick(char)
           await save_char(char)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
 
       # Prints out a list of admins (WIP)
       case 'ADMIN':
@@ -463,7 +600,8 @@ async def parse_command(id, channel, requester, msg):
           for member_id in db['ADMINS']:
             member = await client.fetch_user(int(member_id))
             printable += f"{member.display_name}\t"
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
 
       # Takes in a user ID to output the tul commands to copy them
       case 'CLONE':
@@ -504,7 +642,9 @@ async def parse_command(id, channel, requester, msg):
           if db['checkbook'][char.name] <= 0:
             printable += "**DEADBEAT**"
           await update_rep()
-        await channel.send(printable)
+        if reply:
+          await channel.send(printable)
+        return db['checkbook'][char.name]
 
       # Makes, or resets linked CSHs for all characters.
       case 'ALL-LEVELS':
@@ -658,7 +798,8 @@ async def parse_command(id, channel, requester, msg):
         elif len(command) != 1:
           original_command.pop(0)
           printable = " ".join(original_command)
-          await channel.send(printable)
+          if reply:
+            await channel.send(printable)
           
       case 'MACRO':
         macros = {}
@@ -666,47 +807,121 @@ async def parse_command(id, channel, requester, msg):
           macros = db['macros'][id]
         except:
           pass
+          
+        # Getting a list of all macros
         if len(command) == 1:
           printable = ""
           if len(macros) == 0:
-            await channel.send("You don't have any macros!")
+            await channel.send(f"{char.name} doesn't have any macros!")
             return
-          printable += "Your current macros:\n"
+          printable += f"{char.name}'s current macros:\n"
           for macro in macros:
             printable += f"9..{macro.lower()}\n"
           await channel.send(printable)
+        
+        # Getting info on a macro.
         elif len(command) == 2 and command[1] in macros:
-          print("Entered info case.")
           printable = f"**9..{command[1].lower()}:** \n```\n"
           for macro_command in macros[command[1]]:
             printable += f"{macro_command}\n"
           printable += "\n```"
           await channel.send(printable)
-        elif len(command) == 3 and command[1] == "RM":
-          if command[2] not in macros:
-            await channel.send(f"Couldn't find macro 9..{command[2].lower()}!")
-            return
-          macros.pop(command[2])
-          await channel.send(f"Macro `9..{command[2].lower()}` removed!")
-        elif len(command) > 2:
-          if command[1] == 'ADD':
+
+        elif len(command) >= 3:
+          # Removing a macro
+          if command[1] == "RM":
+            if command[2] not in macros:
+              await channel.send(f"Couldn't find macro 9..{command[2].lower()}!")
+              return
+            macros.pop(command[2])
+            await channel.send(f"Macro `9..{command[2].lower()}` removed!")
+
+          # Sharing a macro with someone else
+          elif command[1] == "SHARE":
+            try:
+              macros = db['macros'][original_id]
+              macro_name = command[2]
+              if macro_name in macros:
+                if id not in db['macros']:
+                  db['macros'][id] = {}
+                db['macros'][id][macro_name] = macros[macro_name]
+                await channel.send(f"Macro `9..{macro_name.lower()}` shared "\
+                                   f"with {db['id2name'][id].capitalize()}!")
+            except:
+              await channel.send("You don't have any macros to share!")
+              return
+
+        # Adding a macro
+          elif command[1] == 'ADD':
             macro_commands = msg.split("\n- ")
             base_command = macro_commands.pop(0).split()[2]
+            for i in range(len(macro_commands)):
+              while i < len(macro_commands) and macro_commands[i].startswith("- "):
+                macro_commands[i-1] = "\n".join(
+                  (macro_commands[i-1], macro_commands.pop(i)))
             macros[base_command.upper()] = macro_commands
             db['macros'][id] = macros
             await channel.send(f"Added macro:  **9..{base_command}**")
+
+      case 'CC':
+        if len(command) == 1:
+          printable = printer.printallcounter(char)
+          if reply:
+            await channel.send(printable)
+        elif len(command) == 2:
+          c_name = original_command[1]
+          if c_name not in char.counter:
+            await channel.send(f"Custom counter not found!")
+            return
+          result = printer.printcounter(c_name, char.counter[c_name])
+          printable = result[0]
+          if reply:
+            await channel.send(printable)
+          return result[1]
+        elif len(command) >= 3:
+          if command[1] == 'ADD':
+            original_command.pop(0)
+            original_command.pop(0)
+            printable = modify.addcounter(char, original_command)
+            await save_char(char)
+            if reply:
+              await channel.send(printable)
+          elif command[1] == 'RM':
+            c_name = original_command[2]
+            char.counter.pop(c_name)
+            await save_char(char)
+            if reply:
+              await channel.send(f"Removed custom counter!\n**{c_name}**")
+          else:
+            try:
+              c_name = original_command[1]
+              printable = modify.modcounter(char, c_name, int(command[2]))
+              await save_char(char)
+              result = printer.printcounter(c_name, char.counter[c_name])
+              printable = result[0] + "\n" + printable
+              if reply:
+                await channel.send(printable)
+              return result[1]
+            except:
+              await wrong_command(channel)
+              return
+
+      case 'LIST':
+        printable = ""
+        if len(command) == 1:
+          printable = printer.printlist(list)
             
       case _:
-        macros = {}
-        try:
-          macros = db['macros'][id]
-        except:
-          pass
-        if command[0] in macros:
-          for macro_cmd in macros[command[0]]:
-            await parse_command(id, channel, requester, macro_cmd)
-        else:
-          await wrong_command(channel)
+        # macros = {}
+        # try:
+        #   macros = db['macros'][id]
+        # except:
+        #   pass
+        # if command[0] in macros:
+        #   for macro_cmd in macros[command[0]]:
+        #     await parse_command(id, channel, requester, macro_cmd)
+        # else:
+        await wrong_command(channel)
 
 
 

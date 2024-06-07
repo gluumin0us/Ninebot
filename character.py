@@ -16,4 +16,5 @@ class Character:
     self.rep = 0
     self.pt = ["", "", "", ""]
     self.id = ""
-
+    self.counter = {}
+    # Counter: [name, min, max, val, is_hidden]

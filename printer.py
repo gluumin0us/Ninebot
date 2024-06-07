@@ -69,10 +69,13 @@ def printchar(char: Character):
     for i in range(len(aff[2])):
       debuff_mark[aff[2][i]] += aff[3][i]
       
+      
   for i in range(7):
     printable_stat = f"{leg_mark[i]}{int_to_stat[i]} - "\
                      f"{char.stat[i]} {tal_mark[i]} "
-    if debuff_mark[i] != 0:
+    if debuff_mark[i] > 0:
+      printable_stat += f"(+{str(debuff_mark[i])})"
+    elif debuff_mark[i] < 0:
       printable_stat += f"({str(debuff_mark[i])})"
     printable.append(printable_stat)
 
@@ -81,11 +84,16 @@ def printchar(char: Character):
   printable.append(f"HP - {char.hp}/{char.max_hp}")
   if char.thp > 0:
     printable.append(f"THP - {char.thp}")
+    
+  for c_name in char.counter:
+    counter = char.counter[c_name]
+    if counter[-1] == 'FALSE':
+      printable.append(printcounter(c_name, counter))
 
   return printable
 
 
-def printroll(char: Character, base: int, stat: str) -> str:
+def printroll(char: Character, base: int, stat: str):
   # Returns a string that prints out the results of a stat roll
   printable = ":game_die:  "
   result = base
@@ -103,7 +111,7 @@ def printroll(char: Character, base: int, stat: str) -> str:
       printable += str(temp_result)
       num_total += temp_result
     printable += f"] = **{num_total}**\n"
-    return printable
+    return [printable, num_total]
     
   elif stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
     result += int(stat)
@@ -127,7 +135,7 @@ def printroll(char: Character, base: int, stat: str) -> str:
   if base == 20:
     printable += "**NATURAL 20!**"
     
-  return printable
+  return [printable, result]
 
 def printhelp(cmd: str, requester) -> discord.Embed():
   req_name, req_avatar = requester
@@ -448,6 +456,8 @@ def printaff(char: Character) -> str:
     cur_aff = char.aff[i]
     printable += f"**{cur_aff[0]} {cur_aff[1]}**\n"
     for i in range(len(cur_aff[2])):
+      if cur_aff[3][i] > 0:
+        printable += "+"
       printable += f"{cur_aff[3][i]} {int_to_stat[cur_aff[2][i]]}\t"
     if len(cur_aff[2]) != 0:
       printable += "\n"
@@ -475,7 +485,7 @@ def printhp(char: Character) -> str:
   printable += "⧽"
   for i in range(math.ceil(char.thp / 10)):
     printable += "❱"
-  printable += f"\n{char.hp} / {char.max_hp}  "
+  printable += f"\nHP - {char.hp} / {char.max_hp}  "
   if char.thp > 0:
     printable += f"❬{char.thp}❭"
   return printable
@@ -494,4 +504,85 @@ def printxp(char: Character) -> str:
   # printable += f"LV {char.level}, {char.xp}/{xp_til_next}"
   return printable
   pass
-  
+
+def printallcounter(char: Character) -> str:
+  # Counter: name: [min, max, val, display, is_hidden]
+  printable = ""
+  if len(char.counter) == 0:
+    printable = "You don't have any custom counters!"
+  else:
+    for c_name in char.counter:
+      printable += printcounter(c_name, char.counter[c_name])[0]
+      printable += "\n"
+  return printable
+
+def printcounter(c_name, c) -> str:
+  # name: [min, max, val, display, milestone, is_hidden]
+  display = {
+    'STAR': ["✦", "✧"],
+    'DIAMOND': ["◈", "◇"],
+    'CIRCLE': ["◉", "◎"],
+    'CHECKBOX': ["☒", "☐"]
+  }
+  printable = ""
+  min = c[0]
+  max = c[1]
+  val = c[2]
+  milestone = c[4]
+  if milestone:
+    if milestone[0] < min:
+      return "Your milestone minimum is smaller than your counter minimum!"
+    if milestone[-1] > max:
+      return "Your miletone maximum is higher than your counter maximum!"
+    if milestone[-1] < max:
+      milestone.append(max)
+    for i in range(len(milestone)):
+      if milestone[i] == val:
+        if val != max:
+          printable += f"{c_name} - M{i+1}, 0/{milestone[i+1] - milestone[i]}\n"
+        else:
+          printable += f"{c_name} - M{i+1}, **MAX**\n"
+        if c[3] in display:
+          if val != max:
+            printable += f"{i+1} "
+            for j in range(milestone[i+1] - milestone[i]):
+              printable += display[c[3]][1]
+            printable += f" {i+2}"
+          else:
+            printable += f"{i} "
+            for j in range(milestone[i] - milestone[i-1]):
+              printable += display[c[3]][0]
+            printable += f" {i+1}"
+        return [printable, i+1]
+      elif milestone[i] > val:
+        if i > 0:
+          min = milestone[i-1]
+        printable += f"{c_name} - M{i}, "\
+        f"{val - min}/{milestone[i] - min}\n"
+        if c[3] in display:
+          printable += f"{i} "
+          for j in range(milestone[i] - min):
+            if j < (val-min):
+              printable += display[c[3]][0]
+            else:
+              printable += display[c[3]][1]
+          printable += f" {i+1}"
+        return [printable, i]
+      
+          
+
+  printable = f"{c_name} - "
+  if c[3] == 'NUM':
+    printable += f"{val}/{max}"
+  elif c[3] in display:
+    for i in range(max):
+      if i < val:
+        printable += display[c[3]][0]
+      else:
+        printable += display[c[3]][1]
+  else:
+    printable += f"{val}/{max}\nDisplay option '{c[3].lower()}' not recognized."
+  return [printable, val]
+
+def printlist(list) -> str:
+  pass
