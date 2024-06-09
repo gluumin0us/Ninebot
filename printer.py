@@ -88,7 +88,7 @@ def printchar(char: Character):
   for c_name in char.counter:
     counter = char.counter[c_name]
     if counter[-1] == 'FALSE':
-      printable.append(printcounter(c_name, counter))
+      printable.append(printcounter(c_name, counter)[0])
 
   return printable
 
@@ -124,7 +124,7 @@ def printroll(char: Character, base: int, stat: str):
   else:
     printable = "I don't think you're quite using the command correctly. "\
     "Refer to `9..help roll` for more details."
-    return printable
+    return [printable, 0]
     
   printable += f"Check: **-{result}+** :game_die:\n"
 
@@ -256,7 +256,7 @@ def printhelp(cmd: str, requester) -> discord.Embed():
 
     case "ROLL":
       embed = discord.Embed(title="<9..roll>",
-      description="This command will roll a d20 and give you the results" \
+      description="This command will roll a d20 and give you the results " \
                   "if you run it without arguments.\n\n" \
                   "If you run the command with a stat, "\
                   "it will add the corresponding " \
@@ -264,7 +264,7 @@ def printhelp(cmd: str, requester) -> discord.Embed():
                   "It will also roll a legendary roll for you " \
                   "automatically when you get a natural 20.\n" \
                   "e.g. `9..roll dex` will return a random number "\
-                  "between 1~20 with your" \
+                  "between 1~20 with your " \
                   "dexterity modifier added.\n\n" \
                   "You can also roll with a custom bonus "\
                   "by running the command with a number.\n" \
@@ -600,8 +600,6 @@ def printcounter(c_name, c) -> str:
           printable += f" {i+1}"
         return [printable, i]
       
-          
-
   printable = f"{c_name} - "
   if c[3] == 'NUM':
     printable += f"{val}/{max}"
@@ -617,3 +615,10 @@ def printcounter(c_name, c) -> str:
 
 def printlist(list) -> str:
   pass
+
+def printlocation(locations: dict, id2name: dict) -> str:
+  printable = "**__Where Everyone Is__**\n*So Felix doesn't go insane*\n"
+  for id in locations:
+    printable += f"{id2name[id].capitalize()} - {locations[id]}\n"
+  printable += "\n*Please type `9..here` in the corresponding channel to begin.*"
+  return printable
