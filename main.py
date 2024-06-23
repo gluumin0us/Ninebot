@@ -30,7 +30,7 @@ names = {
 admins = ["531288319859097601", "262320046653702145"]
 
 ARCHIVE_ID = 1241883869549170748
-GM_ID = 262320046653702145
+GM_ID = 531288319859097601
 
 CHECKBOOK_ID = (797199351515447296, 1245834122232860702)
 
@@ -281,7 +281,7 @@ async def parse_command(id, channel, requester, msg):
           await channel.send(json_data['delivery'])
 
       # Prints out character information
-      case 'CHAR':
+      case 'CHAR' | 'C':
         if len(command) == 1:
           printable = "\n".join(printer.printchar(char))
           if reply:
@@ -340,7 +340,7 @@ async def parse_command(id, channel, requester, msg):
         return char.thp
 
       # Rolls a d20, and optionally adds stats
-      case 'ROLL':
+      case 'ROLL' | 'R':
         result = random.randint(1, 20)
         if len(command) == 1:
           printable = f"Rolling a d20... **-{result}-**\n"
@@ -623,7 +623,7 @@ async def parse_command(id, channel, requester, msg):
           try:
             printable = f"Current Rep for {char.name}: "\
             f"{db['checkbook'][char.name]}\n"
-            if char.rep <= 0:
+            if db['checkbook'][char.name] <= 0:
               printable += "**DEADBEAT**"
           except:
             return
@@ -948,7 +948,7 @@ async def parse_command(id, channel, requester, msg):
             await channel.send("Location set!")
             return
               
-      case 'SESSION':
+      case 'SESSION' | 'SESS':
         # [is_on, start_time, session_message, [player_ids], [last_replied]]
         printable = ""
         GM = await client.fetch_user(GM_ID)
@@ -1003,30 +1003,38 @@ async def parse_command(id, channel, requester, msg):
 
         elif len(command) == 3 and command[1] == 'RM':
           try:
-            rm_id = db['name2id'][command[2]]
-            for i in range(len(db['sess'][3])):
-              if db['sess'][3][i] == rm_id:
-                db['sess'][3].pop(i)
-                db['sess'][4].pop(i)
-                channel_id, message_id, gm_channel_id, gm_msg_id = db['sess'][2]
-                sess_channel = client.get_channel(channel_id)
-                gm_channel = client.get_channel(gm_channel_id)
-                try:
-                  sess_msg = await sess_channel.fetch_message(message_id)
-                  gm_msg = await gm_channel.fetch_message(gm_msg_id)
-                  edit_msg = "**Current Players:** \n"
-                  for p_id in db['sess'][3]:
-                    edit_msg += f"{db['id2name'][p_id].capitalize()} - "\
-                    f"{db['locations'][p_id]}\n"
-                  await sess_msg.edit(content=edit_msg, suppress=True)
-                  await gm_msg.edit(content=edit_msg, suppress=True)
-                  await channel.send(f"{db['id2name'][rm_id].capitalize()} "\
-                                     "removed from session.")
-                except:
-                  print("Something went wrong!")
+            rm_id = ""
+            name2id = db['name2id']
+            found_name = False
+            for name in name2id:
+              if name.startswith(command[-1]):
+                rm_id = name2id[name]
+                found_name = True
                 break
+            if found_name:
+              for i in range(len(db['sess'][3])):
+                if db['sess'][3][i] == rm_id:
+                  db['sess'][3].pop(i)
+                  db['sess'][4].pop(i)
+                  channel_id, message_id, gm_channel_id, gm_msg_id = db['sess'][2]
+                  sess_channel = client.get_channel(channel_id)
+                  gm_channel = client.get_channel(gm_channel_id)
+                  try:
+                    sess_msg = await sess_channel.fetch_message(message_id)
+                    gm_msg = await gm_channel.fetch_message(gm_msg_id)
+                    edit_msg = "**Current Players:** \n"
+                    for p_id in db['sess'][3]:
+                      edit_msg += f"{db['id2name'][p_id].capitalize()} - "\
+                      f"{db['locations'][p_id]}\n"
+                    await sess_msg.edit(content=edit_msg, suppress=True)
+                    await gm_msg.edit(content=edit_msg, suppress=True)
+                    await channel.send(f"{db['id2name'][rm_id].capitalize()} "\
+                                       "removed from session.")
+                  except:
+                    print("Something went wrong!")
+                  break
             else:
-              await channel.send(f"{db['id2name'][rm_id].capitalize()} "\
+              await channel.send(f"{command[-1].capitalize()} "\
                                  "is not in the session!")
           except:
             await wrong_command(channel)
@@ -1084,8 +1092,8 @@ async def on_ready():
   # archive = client.get_guild(1241883869549170748)
   # casino = client.get_guild(797104015304294401)
   # for cat in casino.text_channels:
-  #   if cat.name == "plot-spot":
-  #     await cat.send("Rep is the currency in The Magic Casino! Also don't you think this guy kinda looks like me? He even runs a comic shop too!")
+  #   if cat.name == "lightning-shift":
+  #     await cat.send("What does Dice Maiden have that I don't? :cry:")
   
   print(f'We have logged in as {client.user}')
   
@@ -1172,35 +1180,34 @@ async def on_message(message):
 
   # Saves the message in an archive server.
   archive = client.get_guild(ARCHIVE_ID)
-  if message.guild.id != 1241883869549170748:
-    if channel.type == discord.ChannelType.text:
-      has_channel = False
-      for archive_channel in archive.text_channels:
-        if str(archive_channel) == str(channel):
-          has_channel = True
-          break
-      if not has_channel:
-        await archive.create_text_channel(str(channel),
-                      category= await archive.fetch_channel(1241894024105951263))
-      for archive_channel in archive.text_channels:
-        if archive_channel.name == channel.name:
-          await archive_channel.send(f"{message.author.name}: {message.content}\n")
-          for attachment in message.attachments:
-            await archive_channel.send(attachment.url)
-    elif channel.type == discord.ChannelType.private:
-      has_channel = False
-      for archive_channel in archive.text_channels:
-        if str(archive_channel) == message.author.name:
-          has_channel = True
-          break
-      if not has_channel:
-        await archive.create_text_channel(message.author.name,
-                      category=await archive.fetch_channel(1241893920896450662))
-      for archive_channel in archive.text_channels:
-        if str(archive_channel) == message.author.name:
-          await archive_channel.send(f"{message.author.name}: {message.content}")
-          for attachment in message.attachments:
-            await archive_channel.send(attachment.url)
+  if channel.type == discord.ChannelType.text:
+    has_channel = False
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == str(channel):
+        has_channel = True
+        break
+    if not has_channel:
+      await archive.create_text_channel(str(channel),
+                    category= await archive.fetch_channel(1241894024105951263))
+    for archive_channel in archive.text_channels:
+      if archive_channel.name == channel.name:
+        await archive_channel.send(f"{message.author.name}: {message.content}\n")
+        for attachment in message.attachments:
+          await archive_channel.send(attachment.url)
+  elif channel.type == discord.ChannelType.private:
+    has_channel = False
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == message.author.name:
+        has_channel = True
+        break
+    if not has_channel:
+      await archive.create_text_channel(message.author.name,
+                    category=await archive.fetch_channel(1241893920896450662))
+    for archive_channel in archive.text_channels:
+      if str(archive_channel) == message.author.name:
+        await archive_channel.send(f"{message.author.name}: {message.content}")
+        for attachment in message.attachments:
+          await archive_channel.send(attachment.url)
 
   # Checks if it's a response from Felix to a player
   if db['sess'][0] and message.author.id == 531288319859097601:
@@ -1244,7 +1251,7 @@ async def on_message(message):
     db['locations'][reply_author_id] = location.jump_url
     await location.send(f"<@{reply_author_id}> arrives here...")
     if db['sess'][0]:
-      channel_id, message_id = db['sess'][2]
+      channel_id, message_id, gm_channel_id, gm_msg_id = db['sess'][2]
       sess_channel = client.get_channel(channel_id)
       sess_msg = await sess_channel.fetch_message(message_id)
       name = (db['id2name'][reply_author_id]).capitalize()

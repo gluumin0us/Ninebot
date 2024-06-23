@@ -97,9 +97,17 @@ def printroll(char: Character, base: int, stat: str):
   printable = ":game_die:  "
   result = base
 
-  if re.search("^[0-9]+D[0-9]+$", stat):
+  if re.search("^[0-9]*D[0-9]+", stat):
     nums = re.split("D", stat)
-    nums[0] = int(nums[0])
+    mod = 0
+    if nums[0] == "":
+      nums[0] = 1
+    else:
+      nums[0] = int(nums[0])
+    if "+" in nums[1]:
+      temp_list = nums[1].split("+")
+      nums[1] = temp_list[0]
+      mod = int(temp_list[1])
     nums[1] = int(nums[1])
     num_total = 0
     printable = f"Rolling {stat}... \n["
@@ -109,7 +117,12 @@ def printroll(char: Character, base: int, stat: str):
         printable += ", "
       printable += str(temp_result)
       num_total += temp_result
-    printable += f"] = **{num_total}**\n"
+    printable += "] "
+    if mod > 0:
+      printable += f"+{mod} "
+    elif mod < 0:
+      printable += f"{mod} "
+    printable += f"= **{num_total + mod}**\n"
     return [printable, num_total]
     
   elif stat.isdigit() or stat.startswith('+') or stat.startswith('-'):
